@@ -13,8 +13,8 @@ dependencies:
   - scikit-learn
   - plotly
   - pip
-  - holidays 
   - pip:
     - yfinance
     - prophet
     - streamlit
+    - holidays
