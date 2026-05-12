@@ -19,3 +19,4 @@ dependencies:
     - prophet
     - streamlit
     - holidays
+    - arch
