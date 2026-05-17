@@ -14,9 +14,11 @@ dependencies:
   - plotly
   - pip
   - kaleido
+  - pyarrow
   - pip:
     - yfinance
     - prophet
     - streamlit
     - holidays
     - arch
+    - pyarrow
