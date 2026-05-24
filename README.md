@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="reports/figures/sp500_log_returns_with_vol.png" width="900"/>
+</p>
+
 # S&P 500 Market Intelligence System
 
 **A financial data science and market intelligence project** combining **forecasting, volatility modelling, and anomaly detection** — built to demonstrate production-grade workflows for fintech, banking, and quantitative risk roles.
