@@ -1,6 +1,16 @@
 # S&P 500 Market Intelligence System
 
-**A financial data science and market intelligence project** combining **forecasting, volatility modelling, and anomaly detection** — built to demonstrate production-grade workflows for fintech, banking, and quantitative risk roles.
+A reproducible **financial market intelligence and forecasting system** built using the **S&P 500 Index (^GSPC)**.
+
+This project combines **market diagnostics, risk analysis, and forecasting workflows** to study how financial markets behave and how statistically validated models can be built on top of that understanding.
+
+Designed to demonstrate practical capabilities relevant to:
+
+- Data Science
+- Quantitative / Risk Analytics
+- Forecasting & Time Series Modeling
+- FinTech & Banking Analytics
+- Machine Learning Engineering (forecasting systems)
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![Pandas](https://img.shields.io/badge/Pandas-2.x-orange)
@@ -9,100 +19,249 @@
 
 ---
 
-## Project Overview
+# Executive Summary
 
-This project analyses the **S&P 500 Index (^GSPC)** from 2000–present using a structured financial data science pipeline.
+Most financial projects jump directly into prediction.
 
-The system combines two complementary objectives:
+This project takes a different approach.
 
-### 1. Forecasting
-Building and comparing:
-- Classical time-series models
-- Volatility models
-- Deep learning approaches
+Before forecasting, I validate whether the market data itself is statistically suitable for modeling.
 
-### 2. Market Risk & Regime Intelligence
+The system combines:
+
+### Market Intelligence
 Understanding:
-- volatility behaviour
-- market stress regimes
-- anomaly detection
-- downside risk
-- statistical market structure
 
-The goal is to demonstrate:
+- market structure
+- volatility behavior
+- drawdowns
+- seasonality
+- statistical properties
+- extreme events
 
-- data diligence  
-- statistical rigor  
-- financial domain understanding  
-- reproducible workflows  
-- model validation and interpretability
+### Forecasting
+Building toward:
+
+- ARIMA / SARIMA
+- volatility models (GARCH family)
+- deep learning forecasting
+- model comparison and validation
+
+The objective is not simply to fit models.
+
+It is to build a **reproducible, statistically grounded forecasting pipeline** supported by financial reasoning and transparent methodology.
 
 ---
 
-## Current Progress
+# Why This Project Exists
 
-### Phase 1 — Exploratory Data Analysis & Statistical Validation ✅
+Financial forecasting is highly sensitive to:
+
+- data quality
+- structural assumptions
+- volatility behavior
+- distributional properties
+
+Ignoring these foundations often produces:
+
+- unstable models
+- misleading relationships
+- weak out-of-sample performance
+
+This project approaches forecasting the same way many quantitative and risk workflows operate in practice:
+
+**validate first, model second.**
+
+---
+
+# Current Progress
+
+## Phase 1 — Exploratory Data Analysis & Statistical Validation ✅
 
 Completed work includes:
 
-- Data integrity validation
-- OHLCV structure interpretation
-- Multi-index cleaning & datetime pipeline
+### Data Validation & Cleaning
+- DatetimeIndex construction
+- Multi-level column handling from `yfinance`
+- OHLCV interpretation
 - Zero-volume anomaly investigation
-- Daily log returns construction
+- Data integrity validation
+
+### Statistical Foundations
+- Daily log returns
+- Distribution analysis
 - Stationarity validation (ADF)
-- Rolling volatility analysis
-- Volatility clustering identification
+- Unit-root diagnostics
+- Rolling volatility
+- Volatility clustering
 - Drawdown analysis
 - Seasonality exploration
-- Statistical diagnostics & stylized facts
 
-Next phase:
+### Statistical Diagnostics *(in progress)*
+- ACF / PACF
+- Jarque–Bera normality testing
+- Tail-risk exploration
+- Distribution diagnostics
 
-➡️ Feature Engineering & Forecasting Pipeline
+### Outputs
+- Cleaned dataset export (`Parquet`)
+- Reproducible figures
+- Structured notebook workflow
 
 ---
 
-## Project Workflow
+# Key Findings So Far
+
+## Statistical Validation
+
+### Stationarity
+
+Raw prices are unsuitable for direct modeling due to non-stationary behavior.
+
+After transforming prices into **daily log returns**, formal testing provided strong evidence against a unit root.
+
+**ADF Statistic:** **-19.60**  
+**P-Value:** **< 0.001**
+
+This supports a statistically suitable foundation for classical time-series modeling.
+
+---
+
+## Volatility & Market Structure
+
+Rolling volatility analysis confirms **volatility clustering**.
+
+Periods of market stress show persistent increases in volatility, while calmer regimes exhibit lower sustained risk.
+
+This matters because volatility persistence violates constant-variance assumptions and motivates volatility-aware modeling approaches.
+
+---
+
+## Tail Risk & Extreme Events
+
+Large market moves significantly exceed typical daily fluctuations.
+
+Notable periods include:
+
+### Largest Losses
+- March 16, 2020 (~-12.7%)
+- March 12, 2020
+- 2008 Financial Crisis
+
+### Largest Gains
+- 2008 relief rallies
+- March 2020 COVID rebounds
+- April 2025 macro-driven volatility
+
+These observations highlight:
+
+- fat tails
+- asymmetric risk
+- extreme-event behavior
+
+all of which are important characteristics of financial return series.
+
+---
+
+## Drawdown Risk
+
+Historical drawdown analysis identified:
+
+**Maximum Drawdown:** **-56.78%**
+
+This provides a practical measure of downside risk and helps contextualize market stress before forecasting.
+
+---
+
+## Seasonality
+
+Historical return patterns show measurable calendar effects.
+
+### Average Log Return by Day
+
+**Strongest**
+- Tuesday (**0.000528**)
+- Wednesday (**0.000326**)
+
+**Weakest**
+- Friday (**0.000011**)
+
+### Average Log Return by Month
+
+**Strongest**
+- November (**0.000984**)
+- April (**0.000849**)
+- July (**0.000693**)
+
+**Weakest**
+- September (**-0.000714**)
+- February (**-0.000315**)
+
+These patterns do not imply guaranteed trading opportunities but help reveal long-run market tendencies.
+
+---
+
+## Data Integrity Matters
+
+During validation, a **zero-volume observation** was identified on:
+
+**May 24, 2023**
+
+Verification confirmed:
+
+- not a market holiday
+- valid trading day
+
+Because the S&P 500 is an **index rather than a directly traded asset**, volume is derived and dependent on the data provider.
+
+The zero-volume value was therefore treated as a **data integrity issue** rather than a market condition and removed from the dataset.
+
+### Key Insight
+
+> External financial data should be validated, not blindly trusted.
+
+---
+
+# Project Workflow
 
 ```text
-Raw Market Data
-        ↓
+Market Data Acquisition
+            ↓
 Data Validation & Cleaning
-        ↓
-EDA & Statistical Diagnostics
-        ↓
+            ↓
+EDA & Statistical Validation
+            ↓
+Statistical Diagnostics
+            ↓
 Feature Engineering
-        ↓
-Classical Forecasting
-        ↓
-Volatility Modelling
-        ↓
+            ↓
+Forecasting & Volatility Modeling
+            ↓
 Deep Learning
-        ↓
-Anomaly & Regime Detection
-        ↓
-Model Evaluation
+            ↓
+Anomaly / Regime Detection
+            ↓
+Evaluation & Comparison
 ```
 
 ---
 
-## Notebook Structure
+# Notebook Roadmap
 
-| # | Notebook | Description |
+| Notebook | Focus | Topics |
 |---|---|---|
-| **01** | [`01_eda.ipynb`](01_eda.ipynb) | **EDA, Data Integrity & Financial Foundations**<br>Data loading, OHLCV interpretation, datetime pipeline, zero-volume validation, log returns, stationarity, volatility, drawdowns, seasonality |
-| **02** | [`02_statistical_diagnostics.ipynb`](02_statistical_diagnostics.ipynb) | **Statistical Diagnostics & Stylized Facts**<br>Distribution analysis, skewness/kurtosis, Q-Q plots, Jarque-Bera, ACF/PACF, Ljung-Box, ARCH effects, white-noise testing |
-| **03** | [`03_feature_engineering.ipynb`](03_feature_engineering.ipynb) | **Feature Engineering & Technical Indicators**<br>Rolling statistics, lag features, RSI, MACD, ATR, Bollinger Bands, calendar effects, regime indicators |
-| **04** | [`04_classical_forecasting.ipynb`](04_classical_forecasting.ipynb) | **Classical Forecasting**<br>ARIMA/SARIMA family, Prophet, baseline models, walk-forward validation |
-| **05** | [`05_garch_volatility_modeling.ipynb`](05_garch_volatility_modeling.ipynb) | **Volatility Modelling**<br>ARCH/GARCH, EGARCH, GJR-GARCH, conditional volatility, VaR |
-| **06** | [`06_deep_learning.ipynb`](06_deep_learning.ipynb) | **Deep Learning Forecasting**<br>LSTM, GRU, sequence modelling, multi-step prediction |
-| **07** | [`07_anomaly_detection.ipynb`](07_anomaly_detection.ipynb) | **Anomaly & Regime Detection**<br>Isolation Forest, Autoencoders, extreme-event detection, market regimes |
-| **08** | [`08_model_evaluation.ipynb`](08_model_evaluation.ipynb) | **Evaluation & Comparison**<br>RMSE, MAE, directional accuracy, residual diagnostics, backtesting |
+| **01_eda.ipynb** | EDA & Market Foundations | Data validation, OHLCV, log returns, stationarity, volatility, drawdowns, seasonality |
+| **02_statistical_diagnostics.ipynb** | Diagnostics | ACF/PACF, Jarque–Bera, Q-Q plots, skewness, kurtosis, ARCH, Ljung–Box |
+| **03_feature_engineering.ipynb** | Feature Engineering | Lag features, rolling statistics, technical indicators |
+| **04_classical_forecasting.ipynb** | Classical Forecasting | ARIMA/SARIMA, walk-forward validation |
+| **05_garch_volatility_modeling.ipynb** | Volatility Models | ARCH/GARCH, conditional volatility |
+| **06_deep_learning.ipynb** | Deep Learning | LSTM / GRU |
+| **07_anomaly_detection.ipynb** | Market Intelligence | Regime detection, anomalies |
+| **08_model_evaluation.ipynb** | Evaluation | RMSE, MAE, backtesting |
 
 ---
 
-## Repository Structure
+# Repository Structure
 
 ```text
 sp500-market-intelligence/
@@ -119,67 +278,83 @@ sp500-market-intelligence/
 
 ---
 
-## Tech Stack
+# Tech Stack
 
-### Core
+## Core
 - Python 3.11
 - pandas
 - NumPy
 - yfinance
 
-### Visualisation
+## Visualisation
 - Plotly
-- Matplotlib / Seaborn
+- Matplotlib
+- Seaborn
 
-### Statistical & Forecasting
+## Statistical & Forecasting
 - statsmodels
 - pmdarima
 - Prophet
 - arch
 
-### Machine Learning
+## Machine Learning
 - scikit-learn
 - TensorFlow / Keras
 
-### Environment
+## Reproducibility
 - Conda (`environment.yml`)
-- reproducible notebook workflow
+- Version-controlled notebooks
+- Exported figures and datasets
 
 ---
 
-## How to Run
+# Running the Project
 
 ```bash
-# Clone repository
 git clone https://github.com/Mena-Beshara/sp500-market-intelligence.git
 
 cd sp500-market-intelligence
 
-# Create environment
 conda env create -f environment.yml
+
 conda activate sp500-intel
 
-# Launch notebooks
 jupyter lab
 ```
 
 ---
 
-## Project Status
+# Roadmap
 
-**Active Development**  
-Currently progressing through:
+Planned future work includes:
 
-✅ EDA & Statistical Validation  
-🔄 Feature Engineering  
-⏳ Forecasting & Volatility Modelling  
-⏳ Deep Learning & Regime Detection
+- Feature Engineering
+- ARIMA / SARIMA forecasting
+- Volatility modeling (GARCH)
+- Deep learning forecasting
+- Market anomaly & regime detection
+- Comparative model evaluation
+
+Potential future additions:
+
+- Streamlit dashboard
+- Forecasting API
 
 ---
 
-## Author
+# About Me
 
-**Mena Beshara**  
-Telecommunications Engineer transitioning into Data Science & Quantitative Finance.
+**Mena Beshara**
 
-Building reproducible financial systems with a focus on statistical validation, risk analysis, and explainable modelling.
+Telecommunications Engineer transitioning into **Data Science and Quantitative Finance**.
+
+Building reproducible forecasting and market intelligence systems grounded in:
+
+- statistical validation
+- financial reasoning
+- risk analysis
+- transparent methodology
+- explainable modeling
+
+GitHub:
+https://github.com/Mena-Beshara
