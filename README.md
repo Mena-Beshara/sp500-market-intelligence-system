@@ -1,6 +1,7 @@
 <p align="center">
   <img src="reports/figures/sp500_log_returns_with_vol.png" width="900"/>
 </p>
+
 # S&P 500 Market Intelligence System
 
 **Financial market intelligence built with data science**
