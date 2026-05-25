@@ -6,7 +6,7 @@
 
 **Financial market intelligence built with data science**
 
-An end-to-end financial data science project focused on understanding market behaviour, quantifying risk, and building a foundation for forecasting models using S&P 500 data.
+An end-to-end financial data science project focused on understanding market behaviour, quantifying risk, and building a statistically sound foundation for forecasting models using S&P 500 data.
 
 This project is not only about prediction. It is about building statistical understanding first, then modelling.
 
@@ -14,141 +14,153 @@ This project is not only about prediction. It is about building statistical unde
 
 ## 🎯 Project Objective
 
-Financial time series are structurally different from most datasets: they are noisy, non-stationary, and dominated by regime changes and extreme events.
+Financial time series are structurally different from most datasets. They are noisy, non-stationary, and influenced by regime shifts and extreme events.
 
-This system is built to reflect a realistic analytical workflow:
+This system is designed to reflect a realistic financial analytics workflow:
 
 **data validation → statistical diagnostics → feature engineering → forecasting → evaluation**
 
-The emphasis is on building a reliable foundation before applying models.
+The emphasis is on validating assumptions and understanding market behaviour before applying predictive models.
 
-It combines two perspectives:
-- Market behaviour and risk diagnostics
-- Forecasting and anomaly detection
+The project combines two perspectives:
+
+- **Market behaviour and risk diagnostics**
+- **Forecasting and anomaly detection**
 
 ---
 
 ## 📊 Key Findings (Phases 1–2)
 
-### Data Quality & Structure
-- A single **zero-volume observation (2023-05-24)** was identified in a valid trading period
-- Cross-checked against US market calendar (not a holiday)
+### ⚠️ Data Quality & Validation
+
+A single **zero-volume observation (2023-05-24)** was identified during a valid trading period.
+
+Validation process:
+
+- Cross-checked against the US market calendar
+- Confirmed **not a holiday**
 - Classified as a **data provider inconsistency (yfinance)**
-- Removed to avoid bias in returns and volatility estimates
 
-This reinforces an important principle: external financial data must be validated, not assumed correct.
+Action taken:
+
+- Observation removed to avoid distortions in:
+  - return calculations
+  - volatility estimates
+  - downstream modelling
+
+**Key insight**
+
+> External financial data must be validated, not assumed correct.
 
 ---
 
-### Stationarity & Time-Series Structure
+### 📈 Stationarity & Time-Series Structure
+
+Log returns were tested using the **Augmented Dickey-Fuller (ADF) test**.
+
+Results:
+
+- **ADF Statistic:** **-19.60**
+- **P-value:** **< 0.001**
+
+Findings:
+
 - Log returns are **stationary**
-  - ADF Statistic: **-19.60**
-  - p-value: **< 0.001**
-- Raw prices are non-stationary and contain a unit root
+- Raw prices are **non-stationary** and contain a unit root
 
-This confirms that modelling should be performed on returns rather than prices.
+This confirms that financial modelling should be performed on returns rather than raw prices.
 
 ---
 
-### Distributional Behaviour
-- Skewness: **-0.3479**
-- Excess Kurtosis: **10.6424**
-- Strong evidence of:
-  - fat tails
-  - non-normality
-  - frequent extreme outcomes
+### 📊 Distributional Behaviour
 
-This is confirmed by normality testing (Jarque-Bera rejection).
+Return diagnostics reveal substantial deviation from normality.
+
+Results:
+
+- **Skewness:** **-0.3479**
+- **Excess Kurtosis:** **10.6424**
+
+Evidence confirms:
+
+- fat tails
+- non-normality
+- elevated probability of extreme outcomes
+
+These findings are reinforced through:
+
+- Q–Q plots
+- Jarque–Bera rejection of normality
 
 ---
 
-### Volatility Structure
-- Strong **volatility clustering** observed in squared returns
-- Significant autocorrelation in volatility proxies (squared / absolute returns)
-- Weak autocorrelation in raw returns
+### 📉 Volatility Structure
+
+Volatility behaviour displays strong persistence.
+
+Observations:
+
+- Significant autocorrelation in **squared returns**
+- Weak autocorrelation in **raw returns**
+- Clear **volatility clustering**
 
 This suggests:
-> return direction is weakly predictable, but volatility is structured and persistent
+
+> Return direction is weakly predictable, but volatility is structured and persistent.
 
 ---
 
-### Risk Characteristics
-- Maximum historical drawdown: **-56.78% (2009-03-09)**
-- Severe tail events dominate long-term risk profile
-- Evidence of asymmetric downside risk
+### 📉 Risk Characteristics
+
+Historical risk analysis identified:
+
+- **Maximum Drawdown:** **-56.78%**
+- Trough date: **2009-03-09**
+- Severe downside events dominate long-term risk exposure
+
+Evidence also indicates:
+
+- asymmetric downside risk
+- heavy-tail behaviour
+- elevated market stress during crisis regimes
 
 ---
 
-### Calendar Effects
-- Weakest month: **September**
-- Stronger average returns observed in **Q4 months (notably November)**
-- Weak but observable day-of-week structure
+### 📅 Calendar Effects
 
-These effects are not strong enough for standalone signals, but useful as contextual features.
+Seasonality analysis revealed weak but observable patterns.
+
+Monthly effects:
+
+- **Strongest:** November, April, July
+- **Weakest:** September
+
+Day-of-week effects:
+
+- Stronger average returns on:
+  - Tuesday
+  - Wednesday
+
+These effects are not strong enough for standalone trading signals but may provide useful contextual or engineered features.
 
 ---
 
-## 📂 Notebook Structure
+## 📂 Notebook Roadmap
 
-| #  | Notebook | Status | Focus |
-|----|----------|--------|-------|
-| 01 | EDA & Data Preparation | ✅ Completed | Data validation, returns, drawdowns, seasonality |
-| 02 | Statistical Diagnostics | 🟡 In Progress | ACF/PACF, normality tests, volatility structure |
-| 03 | Feature Engineering | ⏳ Planned | Lags, indicators, regime features |
+| # | Notebook | Status | Focus |
+|---|---|---|---|
+| 01 | EDA & Data Preparation | ✅ Completed | Data validation, returns, volatility, drawdowns, seasonality |
+| 02 | Statistical Diagnostics | 🟡 In Progress | ACF/PACF, distribution testing, volatility persistence |
+| 03 | Feature Engineering | ⏳ Planned | Lag features, indicators, regime features |
 | 04 | Classical Forecasting | ⏳ Planned | ARIMA, SARIMA, Prophet |
 | 05 | Volatility Modelling | ⏳ Planned | GARCH family, VaR |
 | 06 | Deep Learning Forecasting | ⏳ Planned | LSTM, GRU |
 | 07 | Anomaly Detection | ⏳ Planned | Isolation Forest, autoencoders |
-| 08 | Model Evaluation | ⏳ Planned | Backtesting and performance comparison |
+| 08 | Model Evaluation | ⏳ Planned | Backtesting and model comparison |
 
 ---
 
-## 🛠 Tech Stack
-
-**Data Processing**
-- Python 3.11
-- pandas, NumPy
-- yfinance
-
-**Statistical Analysis**
-- statsmodels
-- scipy
-
-**Visualisation**
-- Plotly (primary)
-- Matplotlib
-
-**Forecasting (Planned)**
-- ARIMA / SARIMA / Prophet
-- GARCH family models
-- TensorFlow / Keras (LSTM, GRU)
-- scikit-learn
-
-**Environment**
-- Conda-based reproducible environment (`environment.yml`)
-
----
-
-## 📁 Repository Structure
-
-```text
-sp500-market-intelligence/
-├── data/                        # Cleaned datasets (CSV + Parquet)
-├── notebooks/
-│   ├── 01_eda.ipynb
-│   ├── 02_statistical_diagnostics.ipynb
-│   └── ...
-├── reports/
-│   └── figures/                 # Exported visualisations
-├── environment.yml
-├── README.md                         # Future reusable modules
-Next phase:
-
-➡️ Feature Engineering & Forecasting Pipeline
-
----
-
-## Project Workflow
+## 🔄 Project Workflow
 
 ```text
 Raw Market Data
@@ -172,67 +184,60 @@ Model Evaluation
 
 ---
 
-## Notebook Structure
+## 🛠 Tech Stack
 
-| # | Notebook | Description |
-|---|---|---|
-| **01** | [`01_eda.ipynb`](01_eda.ipynb) | **EDA, Data Integrity & Financial Foundations**<br>Data loading, OHLCV interpretation, datetime pipeline, zero-volume validation, log returns, stationarity, volatility, drawdowns, seasonality |
-| **02** | [`02_statistical_diagnostics.ipynb`](02_statistical_diagnostics.ipynb) | **Statistical Diagnostics & Stylized Facts**<br>Distribution analysis, skewness/kurtosis, Q-Q plots, Jarque-Bera, ACF/PACF, Ljung-Box, ARCH effects, white-noise testing |
-| **03** | [`03_feature_engineering.ipynb`](03_feature_engineering.ipynb) | **Feature Engineering & Technical Indicators**<br>Rolling statistics, lag features, RSI, MACD, ATR, Bollinger Bands, calendar effects, regime indicators |
-| **04** | [`04_classical_forecasting.ipynb`](04_classical_forecasting.ipynb) | **Classical Forecasting**<br>ARIMA/SARIMA family, Prophet, baseline models, walk-forward validation |
-| **05** | [`05_garch_volatility_modeling.ipynb`](05_garch_volatility_modeling.ipynb) | **Volatility Modelling**<br>ARCH/GARCH, EGARCH, GJR-GARCH, conditional volatility, VaR |
-| **06** | [`06_deep_learning.ipynb`](06_deep_learning.ipynb) | **Deep Learning Forecasting**<br>LSTM, GRU, sequence modelling, multi-step prediction |
-| **07** | [`07_anomaly_detection.ipynb`](07_anomaly_detection.ipynb) | **Anomaly & Regime Detection**<br>Isolation Forest, Autoencoders, extreme-event detection, market regimes |
-| **08** | [`08_model_evaluation.ipynb`](08_model_evaluation.ipynb) | **Evaluation & Comparison**<br>RMSE, MAE, directional accuracy, residual diagnostics, backtesting |
+### Data Processing
+- Python 3.11
+- pandas
+- NumPy
+- yfinance
+
+### Statistical Analysis
+- statsmodels
+- scipy
+- arch (planned)
+
+### Visualisation
+- Plotly (primary)
+- Matplotlib
+
+### Forecasting & Machine Learning (Planned)
+- ARIMA / SARIMA
+- Prophet
+- scikit-learn
+- TensorFlow / Keras
+
+### Environment
+- Conda-based reproducible workflow
+- `environment.yml`
 
 ---
 
-## Repository Structure
+## 📁 Repository Structure
 
 ```text
 sp500-market-intelligence/
 │
 ├── notebooks/
+│   ├── 01_eda.ipynb
+│   ├── 02_statistical_diagnostics.ipynb
+│   └── ...
+│
 ├── data/
-│   ├── raw/
-│   └── processed/
+│   ├── sp500_cleaned.csv
+│   ├── sp500_cleaned.parquet
+│   └── sp500_eda_enriched.parquet
+│
 ├── reports/
 │   └── figures/
+│
 ├── environment.yml
 └── README.md
 ```
 
 ---
 
-## Tech Stack
-
-### Core
-- Python 3.11
-- pandas
-- NumPy
-- yfinance
-
-### Visualisation
-- Plotly
-- Matplotlib / Seaborn
-
-### Statistical & Forecasting
-- statsmodels
-- pmdarima
-- Prophet
-- arch
-
-### Machine Learning
-- scikit-learn
-- TensorFlow / Keras
-
-### Environment
-- Conda (`environment.yml`)
-- reproducible notebook workflow
-
----
-
-## How to Run
+## 🚀 How to Run
 
 ```bash
 # Clone repository
@@ -250,21 +255,43 @@ jupyter lab
 
 ---
 
-## Project Status
+## 📌 Project Status
 
-**Active Development**  
-Currently progressing through:
+**Active Development**
+
+Current progress:
 
 ✅ EDA & Statistical Validation  
-🔄 Feature Engineering  
+🟡 Statistical Diagnostics (in progress)  
+⏳ Feature Engineering  
 ⏳ Forecasting & Volatility Modelling  
 ⏳ Deep Learning & Regime Detection
+
+---
+
+## 📍 Next Phase
+
+**Feature Engineering & Forecasting Pipeline**
+
+Upcoming work includes:
+
+- lag structures
+- technical indicators
+- regime features
+- GARCH volatility modelling
+- ARIMA / LSTM forecasting
+- model evaluation and comparison
 
 ---
 
 ## Author
 
 **Mena Beshara**  
-Telecommunications Engineer transitioning into Data Science & Quantitative Finance.
+Telecommunications Engineer transitioning into Data Science and Quantitative Finance.
 
-Building reproducible financial systems with a focus on statistical validation, risk analysis, and explainable modelling.
+Building reproducible financial systems with a focus on:
+
+- statistical validation
+- risk analysis
+- explainable modelling
+- financial time-series intelligence
