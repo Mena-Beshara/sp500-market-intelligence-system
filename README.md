@@ -1,425 +1,310 @@
-<p align="center">
-  <img src="reports/figures/sp500_log_returns_with_vol.png" width="900"/>
-</p>
-
 # S&P 500 Market Intelligence System
 
-**A decision-support system for market risk analysis and forecasting**
+A quantitative decision-support system designed to support systematic long-term investing.
 
-An end-to-end financial data science project that transforms historical S&P 500 market data into actionable risk intelligence.
+The project transforms historical and live S&P 500 market data into a structured daily Market Risk Report that helps evaluate portfolio risk before new capital is allocated. Rather than predicting market direction or generating trading signals, the system estimates market conditions through statistical analysis, volatility forecasting and market regime classification.
 
-The project combines statistical analysis, forecasting, volatility modelling, and market regime identification to answer a practical question:
-
-> Can historical market data provide useful insight into future market risk, even when future market direction remains difficult to predict?
-
-Built as a self-directed financial data science project, the system follows a complete analytical workflow from data validation through to forecasting, risk assessment, and decision-support outputs.
-
-Rather than focusing solely on price prediction, the project investigates how statistical and machine learning methods can be used to identify, quantify, and communicate changing market risk conditions.
+The objective is to replace intuition with a repeatable, evidence-based investment process.
 
 ---
 
-## 🎯 Project Objective
+## The problem
 
-Financial markets are noisy, adaptive systems where short-term price direction is often difficult to predict.
+Financial markets are noisy, non-linear and difficult to predict.
 
-However, market risk behaves differently.
+Classical forecasting techniques often perform no better than simple benchmarks when applied to daily returns, yet market volatility exhibits persistent statistical structure through clustering and changing regimes.
 
-Volatility exhibits persistence, clustering, and regime-dependent behaviour that can be measured, modelled, and forecasted.
+This project asks a different question.
 
-The objective of this project is to build a market intelligence system capable of:
+> **Can historical market data be transformed into interpretable risk information that supports a repeatable investment decision process?**
 
-* Validating and monitoring financial data quality
-* Quantifying market risk characteristics
-* Forecasting future volatility
-* Identifying changing market regimes
-* Generating interpretable risk signals
-* Supporting risk-aware investment decisions
-
-The project follows a structured workflow:
-
-**data validation → statistical diagnostics → feature engineering → forecasting → risk intelligence → decision support**
-
-The emphasis is not simply producing forecasts, but translating model outputs into information that could support portfolio and risk management decisions.
+Rather than attempting to predict direction, the project focuses on estimating uncertainty.
 
 ---
 
-## 🧠 Intended Decision-Support Outputs
-
-The long-term goal is to evolve the project from a forecasting exercise into a market risk intelligence platform.
-
-Planned outputs include:
-
-### Market Risk Dashboard
-
-* Current market risk assessment
-* Forecast volatility reporting
-* Historical risk monitoring
-* Market regime tracking
-
-### Risk Classification
-
-Forecasts translated into interpretable risk categories:
-
-| Risk Level | Description               |
-| ---------- | ------------------------- |
-| Low        | Stable market conditions  |
-| Moderate   | Normal market risk        |
-| High       | Elevated uncertainty      |
-| Extreme    | Significant market stress |
-
-### Market Regime Detection
-
-Identification of market environments such as:
-
-* Calm
-* Normal
-* Stress
-* Crisis
-
-### Early Warning Indicators
-
-Signals designed to identify:
-
-* Rising volatility
-* Regime transitions
-* Increasing tail risk
-* Elevated market stress
-
-### Portfolio Risk Intelligence
-
-Future versions of the system will explore how forecast risk levels could inform:
-
-* Portfolio exposure decisions
-* Risk budgeting
-* Hedging requirements
-* Monitoring and review frequency
-
-The objective is to convert statistical forecasts into actionable risk intelligence rather than treating forecasting accuracy as the final output.
-
----
-
-## 📊 Key Findings (Notebooks 01–02)
-
-### ⚠️ Data Quality & Validation
-
-A single **zero-volume observation (2023-05-24)** was identified during a valid trading period.
-
-Validation process:
-
-* Cross-checked against the US market calendar
-* Confirmed **not a holiday**
-* Classified as a **data provider inconsistency (yfinance)**
-
-Action taken:
-
-* Observation removed to avoid distortions in:
-
-  * return calculations
-  * volatility estimates
-  * downstream modelling
-
-**Key insight**
-
-> External financial data must be validated, not assumed correct.
-
----
-
-### 📈 Stationarity & Time-Series Structure
-
-Log returns were tested using the **Augmented Dickey-Fuller (ADF) test**.
-
-Results:
-
-* **ADF Statistic:** **-19.60**
-* **P-value:** **< 0.001**
-
-Findings:
-
-* Log returns are **stationary**
-* Raw prices are **non-stationary** and contain a unit root
-
-This confirms that financial modelling should be performed on returns rather than raw prices.
-
----
-
-### 📊 Distributional Behaviour
-
-Statistical diagnostics reveal substantial deviation from normality.
-
-Results:
-
-* **Skewness:** **-0.3479**
-* **Excess Kurtosis:** **10.6424**
-* **Jarque–Bera Statistic:** **31,350.69**
-* **P-value:** **< 0.001**
-
-Evidence confirms:
-
-* fat tails
-* non-normality
-* elevated probability of extreme outcomes
-* asymmetric downside behaviour
-
-Diagnostics included:
-
-* Q–Q Plot analysis
-* Jarque–Bera normality testing
-
-These findings indicate that extreme market events occur more frequently than predicted under Gaussian assumptions.
-
-**Key insight**
-
-> Financial returns violate normality assumptions, making tail-aware risk and volatility models necessary.
-
----
-
-### 📉 Volatility Structure
-
-Volatility diagnostics reveal strong persistence and time-varying risk.
-
-Results from Notebook 02 show:
-
-* Weak autocorrelation in raw returns
-* Strong autocorrelation in squared returns
-* Significant volatility clustering
-* Persistent dependence across volatility lags
-* Evidence of conditional heteroskedasticity
-
-Formal diagnostics included:
-
-* ACF / PACF of returns
-* ACF / PACF of squared returns
-* Ljung–Box testing
-* Engle ARCH LM testing
-
-Key findings:
-
-* Return direction exhibits limited predictability
-* Volatility displays measurable structure and persistence
-* Market risk is not randomly distributed through time
-
-**Key insight**
-
-> Market direction remains difficult to predict, but volatility itself displays persistent and forecastable structure.
-
----
-
-### 📐 Statistical Diagnostics
-
-Notebook 02 formally tested whether S&P 500 returns satisfy common modelling assumptions.
-
-Findings:
-
-* Returns are not normally distributed.
-* Raw returns exhibit weak linear dependence.
-* Squared returns strongly reject white-noise behaviour.
-* Volatility demonstrates persistent clustering.
-* ARCH effects are statistically significant.
-
-Ljung–Box results:
-
-* Returns show weak but statistically detectable dependence.
-* Squared returns show extremely strong serial dependence.
-
-ARCH LM results:
-
-* **LM Statistic:** **1770.98**
-* **P-value:** **< 0.001**
-
-These diagnostics provide strong empirical support for volatility-aware modelling approaches.
-
-**Key insight**
-
-> Statistical significance in financial data does not always imply economic predictability, but volatility persistence creates measurable structure for risk modelling.
-
----
-
-### 📉 Risk Characteristics
-
-Historical risk analysis identified:
-
-* **Maximum Drawdown:** **-56.78%**
-* Trough date: **2009-03-09**
-* Severe downside events dominate long-term risk exposure
-
-Evidence also indicates:
-
-* asymmetric downside risk
-* heavy-tail behaviour
-* elevated market stress during crisis regimes
-
----
-
-### 📅 Calendar Effects
-
-Seasonality analysis revealed weak but observable patterns.
-
-Monthly effects:
-
-* **Strongest:** November, April, July
-* **Weakest:** September
-
-Day-of-week effects:
-
-* Stronger average returns on:
-
-  * Tuesday
-  * Wednesday
-
-These effects are not strong enough for standalone trading signals but may provide useful contextual or engineered features.
-
----
-
-## 📂 Notebook Roadmap
-
-| #  | Notebook                    | Status         | Focus                                                                    |
-| -- | --------------------------- | -------------- | ------------------------------------------------------------------------ |
-| 01 | EDA & Data Preparation      | ✅ Completed    | Data validation, returns, volatility, drawdowns, seasonality             |
-| 02 | Statistical Diagnostics     | ✅ Completed    | Distribution testing, ACF/PACF, volatility persistence, ARCH effects     |
-| 03 | Feature Engineering         | ✅ Completed    | Lag features, technical indicators, volatility features, regime features |
-| 04 | Classical Forecasting       | ✅ Completed    | ARIMA forecasting, benchmark comparison, forecast evaluation             |
-| 05 | Volatility Modelling        | 🚧 In Progress | ARCH/GARCH models, volatility forecasting, risk estimation               |
-| 06 | Deep Learning Forecasting   | ⏳ Planned      | LSTM, GRU                                                                |
-| 07 | Anomaly & Regime Detection  | ⏳ Planned      | Market regimes, anomaly detection, stress identification                 |
-| 08 | Decision Intelligence Layer | ⏳ Planned      | Risk scores, regime classification, portfolio risk signals               |
-
----
-
-## 🔄 Project Workflow
+## The system
 
 ```text
-Raw Market Data
-        ↓
-Data Validation & Cleaning
-        ↓
-EDA & Statistical Diagnostics
-        ↓
+Historical Market Data
+          │
+          ▼
+Data Validation
+          │
+          ▼
+Statistical Diagnostics
+          │
+          ▼
 Feature Engineering
-        ↓
-Forecasting & Volatility Modelling
-        ↓
-Regime Detection
-        ↓
-Risk Intelligence Layer
-        ↓
-Decision-Support Outputs
+          │
+          ▼
+Volatility Forecasting
+          │
+          ▼
+Market Regime Classification
+          │
+          ▼
+Risk Intelligence
+          │
+          ▼
+Daily Market Risk Report
+          │
+          ▼
+Decision Log
 ```
+
+Every stage contributes to a single objective: producing a transparent, evidence-based assessment of current market risk.
 
 ---
 
-## 🛠 Tech Stack
+## Daily Market Risk Report
 
-### Data Processing
+```text
+-------------------------------------------------
+S&P 500 Market Risk Report
+-------------------------------------------------
+
+Date:                  2026-07-01
+
+Forecast volatility:   23.8% annualised
+Historical percentile: 89th
+Market regime:         Stress
+95% Value at Risk:     -2.1%
+Anomaly detected:      No
+
+Risk summary
+
+Market volatility remains elevated relative to
+recent history. Although current conditions fall
+within the historical distribution, continued
+portfolio monitoring is recommended before the
+next trading session.
+
+Decision logged.
+
+-------------------------------------------------
+```
+
+The report deliberately separates model outputs from investment decisions.
+
+The model estimates market conditions.
+
+The investor remains responsible for every portfolio decision.
+
+---
+
+## Current capabilities
+
+### Data engineering
+
+* Download historical S&P 500 market data
+* Validate data quality before analysis
+* Detect missing observations and duplicates
+* Verify trading calendar consistency
+* Export validated datasets for downstream modelling
+
+### Statistical analysis
+
+* Stationarity testing
+* Distribution analysis
+* Fat-tail analysis
+* Volatility clustering diagnostics
+* Drawdown analysis
+* Correlation structure
+* Risk metric calculation
+
+### Feature engineering
+
+* Log returns
+* Rolling volatility
+* Lagged features
+* Momentum features
+* Calendar variables
+* Bias-free feature construction
+
+### Forecasting
+
+* Historical Mean benchmark
+* ARIMA evaluation
+* SARIMA evaluation
+* Prophet evaluation
+* Walk-forward validation
+
+### Volatility modelling (in progress)
+
+* Realised volatility forecasting
+* GARCH models
+* Persistence benchmark
+* HAR-RV benchmark
+* Rolling parameter stability
+* Residual diagnostics
+
+### Risk intelligence (planned)
+
+* Market regime classification
+* Risk score generation
+* Daily risk report
+* Decision logging
+* Portfolio monitoring metrics
+
+---
+
+## Research findings
+
+The direction forecasting stage produced one result that shaped the rest of the system.
+
+Forecasting market direction using ARIMA, SARIMA and Prophet did not outperform a simple Historical Mean benchmark under walk-forward evaluation.
+
+Rather than introducing additional model complexity without evidential justification, the project shifted its modelling effort toward volatility forecasting, where the statistical diagnostics demonstrated persistent structure through conditional heteroskedasticity.
+
+The project now estimates market risk rather than predicting returns.
+
+---
+
+## Research workflow
+
+| Stage                    | Objective                        | Status |
+| ------------------------ | -------------------------------- | :----: |
+| Data validation          | Validate raw market data         |   ✅   |
+| Statistical diagnostics  | Characterise return behaviour    |   ✅   |
+| Feature engineering      | Create forecasting features      |   ✅   |
+| Direction forecasting    | Evaluate predictive edge         |   ✅   |
+| Volatility modelling     | Forecast conditional volatility  |   🚧   |
+| Deep learning comparison | Compare against GARCH            |   📋   |
+| Anomaly detection        | Detect structural market changes |   📋   |
+| Risk intelligence        | Generate Market Risk Report      |   📋   |
+
+---
+
+## Methodology
+
+* Data quality is verified before modelling.
+* Look-ahead bias is explicitly prevented.
+* Walk-forward validation is preferred over random train-test splits.
+* Simpler models are preferred unless additional complexity improves out-of-sample performance.
+* Every modelling decision is supported by statistical evidence.
+* Every stage is reproducible and suitable for technical review.
+
+---
+
+## Technology stack
+
+### Languages
 
 * Python 3.11
+
+### Data
+
 * pandas
 * NumPy
+* Parquet
 * yfinance
 
-### Statistical Analysis
+### Statistical modelling
 
 * statsmodels
-* scipy
-* arch (planned)
-* statistical hypothesis testing
-* volatility diagnostics
+* SciPy
+* arch
 
 ### Visualisation
 
-* Plotly (primary)
-* Matplotlib
+* Plotly
 
-### Forecasting & Machine Learning
+### Development
 
-* ARIMA / SARIMA
-* Prophet
-* scikit-learn
-* TensorFlow / Keras
-
-### Environment
-
-* Conda-based reproducible workflow
-* `environment.yml`
+* Jupyter Notebook
+* Conda
+* environment.yml
 
 ---
 
-## 📁 Repository Structure
+## Repository structure
 
 ```text
-sp500-market-intelligence/
+market-intelligence-system/
+
 │
 ├── notebooks/
-│   ├── 01_eda.ipynb
+│   ├── 01_data_validation.ipynb
 │   ├── 02_statistical_diagnostics.ipynb
-│   └── ...
+│   ├── 03_feature_engineering.ipynb
+│   ├── 04_direction_forecasting.ipynb
+│   ├── 05_volatility_modelling.ipynb
+│   ├── 06_deep_learning_comparison.ipynb
+│   ├── 07_anomaly_detection.ipynb
+│   └── 08_risk_intelligence.ipynb
 │
 ├── data/
-│   ├── sp500_cleaned.csv
-│   ├── sp500_cleaned.parquet
-│   └── sp500_eda_enriched.parquet
-│
-├── reports/
-│   └── figures/
 │
 ├── environment.yml
+│
 └── README.md
 ```
 
----
-
-## 🚀 How to Run
-
-```bash
-# Clone repository
-git clone https://github.com/Mena-Beshara/sp500-market-intelligence.git
-
-cd sp500-market-intelligence
-
-# Create environment
-conda env create -f environment.yml
-conda activate sp500-intel
-
-# Launch notebooks
-jupyter lab
-```
+The repository currently focuses on the research phase. Once the analytical work is complete, the notebooks will be modularised into a production-ready Python package.
 
 ---
 
-## 📌 Project Status
+## Production roadmap
 
-**Active Development**
+### Research phase
 
-Current progress:
+* ✅ Data validation
+* ✅ Statistical diagnostics
+* ✅ Feature engineering
+* ✅ Direction forecasting
+* 🚧 Volatility forecasting
+* 📋 Deep learning comparison
+* 📋 Anomaly detection
+* 📋 Risk intelligence system
 
-## 📌 Project Status
+### Production phase
 
-**Active Development**
-
-Current progress:
-
-✅ EDA & Statistical Validation
-✅ Statistical Diagnostics & Stylized Facts
-✅ Feature Engineering
-✅ Classical Forecasting & Benchmark Evaluation
-🚧 Volatility Modelling (ARCH/GARCH)
-⏳ Regime Detection & Risk Intelligence
-
+* Modular `src` package
+* Daily report generation
+* Unit testing
+* Model Card
+* Automated execution
+* Configuration management
 
 ---
 
-## Author
+## Known limitations
 
-**Mena Beshara**
+The system estimates market risk rather than market direction.
 
-Telecommunications Engineer transitioning into Data Science and Quantitative Finance.
+Forecasts are derived from historical observations and cannot anticipate unforeseen macroeconomic or geopolitical events.
 
-This project demonstrates an end-to-end financial analytics workflow covering:
+Market regime thresholds are percentile-based and may require recalibration as market structure evolves.
 
-* data quality validation
-* statistical diagnostics
-* financial time-series analysis
-* volatility modelling
-* forecasting and model evaluation
-* risk intelligence system design
+The current implementation is designed around SPY as a representative long-term equity position and should not be assumed to generalise to other asset classes without additional validation.
 
-The broader objective is to build reproducible analytical systems that transform market data into interpretable insights for risk management and investment decision-making.
+The project produces decision-support information only. It does not generate trading signals or investment advice.
+
+---
+
+## Why this project
+
+Many market forecasting projects stop once a prediction has been generated.
+
+This project continues one step further.
+
+It investigates whether statistical models can support a disciplined investment process rather than simply producing forecasts. Every model output feeds into a structured Market Risk Report, every investment decision is logged separately from the model output, and the framework can be evaluated retrospectively to determine whether the decision process improves consistency over time.
+
+The emphasis is not on predicting the future. It is on building a transparent, repeatable and auditable decision-support system for long-term investing.
+
+It also demonstrates a complete quantitative workflow:
+
+* validating financial data,
+* performing statistical diagnostics,
+* engineering forecasting features,
+* evaluating competing models,
+* selecting models based on evidence,
+* translating model outputs into business decisions.
+
+---
+
+## License
+
+This repository is intended for educational and portfolio purposes.
+
+Nothing in this repository constitutes financial or investment advice. The Market Intelligence System provides quantitative decision-support information only, and all investment decisions remain the responsibility of the investor.

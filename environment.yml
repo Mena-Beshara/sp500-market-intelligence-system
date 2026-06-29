@@ -21,3 +21,4 @@ dependencies:
     - streamlit
     - holidays
     - arch
+    - pandas_market_calendars
