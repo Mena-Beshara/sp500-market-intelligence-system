@@ -1,3 +1,5 @@
+![S&P 500 Daily Log Returns vs 21-day Rolling Volatility](reports/figures/sp500_log_returns_with_vol.png)
+
 # S&P 500 Market Intelligence System
 
 A quantitative decision-support system designed to support systematic long-term investing.
