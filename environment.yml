@@ -15,6 +15,7 @@ dependencies:
   - pip
   - kaleido
   - pyarrow
+  - tabulate
   - pip:
     - yfinance
     - prophet
