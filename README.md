@@ -1,5 +1,7 @@
 ![S&P 500 Daily Log Returns vs 21-day Rolling Volatility](reports/figures/sp500_log_returns_with_vol.png)
 
+![S&P 500 Daily Log Returns vs 21-day Rolling Volatility](reports/figures/sp500_log_returns_with_vol.png)
+
 # S&P 500 Market Intelligence System
 
 A quantitative decision-support system designed to support systematic long-term investing.
@@ -131,20 +133,28 @@ The investor remains responsible for every portfolio decision.
 * Prophet evaluation
 * Walk-forward validation
 
-### Volatility modelling (in progress)
+### Volatility modelling
 
-* Realised volatility forecasting
-* GARCH models
-* Persistence benchmark
-* HAR-RV benchmark
-* Rolling parameter stability
-* Residual diagnostics
+* Realised volatility target construction
+* Naive persistence benchmark
+* ARCH and GARCH estimation under Normal and Student's t innovations
+* Asymmetric volatility response via GJR-GARCH
+* Model selection by information criteria
+* Walk-forward evaluation with scheduled refits
+* Residual diagnostics on standardised residuals
+* Volatility persistence and half-life interpretation
+
+### Market regime classification
+
+* Percentile-based regimes: Calm, Normal, Stress, Crisis
+* Historical validation against the 2020 COVID crash and the 2022 rate-hike period
+* Plain-language risk signal generation
+* Risk intelligence summary in both conditional volatility and expected daily move units
 
 ### Risk intelligence (planned)
 
-* Market regime classification
-* Risk score generation
-* Daily risk report
+* Daily Market Risk Report generation
+* Anomaly alert integration
 * Decision logging
 * Portfolio monitoring metrics
 
@@ -160,6 +170,10 @@ Rather than introducing additional model complexity without evidential justifica
 
 The project now estimates market risk rather than predicting returns.
 
+The volatility stage put that decision to work. Conditional heteroskedasticity, first identified in the statistical diagnostics, was reconfirmed on the modelling sample before any model was fitted. GARCH-family models were then built as a controlled ladder — ARCH(1), GARCH(1,1) under Normal and Student's t innovations, then GJR-GARCH — with each step changing exactly one assumption so any improvement is attributable to a specific modelling choice. Heavy-tailed innovations follow directly from the fat-tail diagnostics, and the asymmetric specification tests whether volatility responds more strongly to negative shocks, the leverage effect implied by the negative skew of daily returns.
+
+Model selection is handled by information criteria through a winner-selection registry, so the regime classifier, risk signal and summary always inherit the best-supported specification rather than a hardcoded choice. Every volatility model is evaluated out of sample against a naive persistence benchmark under walk-forward validation, and the regime classifier is checked against two known stress periods: the 2020 COVID crash and the 2022 rate-hike year.
+
 ---
 
 ## Research workflow
@@ -170,7 +184,7 @@ The project now estimates market risk rather than predicting returns.
 | Statistical diagnostics  | Characterise return behaviour    |   ✅   |
 | Feature engineering      | Create forecasting features      |   ✅   |
 | Direction forecasting    | Evaluate predictive edge         |   ✅   |
-| Volatility modelling     | Forecast conditional volatility  |   🚧   |
+| Volatility modelling     | Forecast conditional volatility  |   ✅   |
 | Deep learning comparison | Compare against GARCH            |   📋   |
 | Anomaly detection        | Detect structural market changes |   📋   |
 | Risk intelligence        | Generate Market Risk Report      |   📋   |
@@ -222,27 +236,32 @@ The project now estimates market risk rather than predicting returns.
 ## Repository structure
 
 ```text
-market-intelligence-system/
+sp500-market-intelligence-system/
 
 │
 ├── notebooks/
-│   ├── 01_data_validation.ipynb
+│   ├── 01_eda.ipynb
 │   ├── 02_statistical_diagnostics.ipynb
 │   ├── 03_feature_engineering.ipynb
-│   ├── 04_direction_forecasting.ipynb
-│   ├── 05_volatility_modelling.ipynb
-│   ├── 06_deep_learning_comparison.ipynb
-│   ├── 07_anomaly_detection.ipynb
-│   └── 08_risk_intelligence.ipynb
+│   ├── 04_Baseline_Forecasting_Models.ipynb
+│   └── 05_volatility_forecasting_garch.ipynb
 │
 ├── data/
+│   ├── sp500_cleaned.csv
+│   ├── sp500_cleaned.parquet
+│   ├── sp500_eda_enriched.csv
+│   ├── sp500_eda_enriched.parquet
+│   └── sp500_features.parquet
+│
+├── reports/
+│   └── figures/
 │
 ├── environment.yml
 │
 └── README.md
 ```
 
-The repository currently focuses on the research phase. Once the analytical work is complete, the notebooks will be modularised into a production-ready Python package.
+The repository currently focuses on the research phase. Notebooks 06 to 08 (deep learning comparison, anomaly detection, risk intelligence) are scheduled next and will be added under `notebooks/` as they are completed. Once the analytical work is complete, the notebooks will be modularised into a production-ready Python package.
 
 ---
 
@@ -254,7 +273,7 @@ The repository currently focuses on the research phase. Once the analytical work
 * ✅ Statistical diagnostics
 * ✅ Feature engineering
 * ✅ Direction forecasting
-* 🚧 Volatility forecasting
+* ✅ Volatility forecasting
 * 📋 Deep learning comparison
 * 📋 Anomaly detection
 * 📋 Risk intelligence system
@@ -277,6 +296,8 @@ The system estimates market risk rather than market direction.
 Forecasts are derived from historical observations and cannot anticipate unforeseen macroeconomic or geopolitical events.
 
 Market regime thresholds are percentile-based and may require recalibration as market structure evolves.
+
+Realised volatility is an observable proxy for latent volatility, so forecast evaluation inherits the measurement noise of that proxy.
 
 The current implementation is designed around SPY as a representative long-term equity position and should not be assumed to generalise to other asset classes without additional validation.
 
