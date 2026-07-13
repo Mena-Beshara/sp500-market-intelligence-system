@@ -1,28 +1,25 @@
 ![S&P 500 Daily Log Returns vs 21-day Rolling Volatility](reports/figures/sp500_log_returns_with_vol.png)
 
-![S&P 500 Daily Log Returns vs 21-day Rolling Volatility](reports/figures/sp500_log_returns_with_vol.png)
+*Figure 1. Daily S&P 500 log returns and 21-day rolling volatility. The clustering of calm and turbulent periods motivates the shift from return forecasting to conditional volatility modelling.*
 
 # S&P 500 Market Intelligence System
 
-A quantitative decision-support system designed to support systematic long-term investing.
+### A quantitative decision-support framework for systematic long-term investing
 
 The project transforms historical and live S&P 500 market data into a structured daily Market Risk Report that helps evaluate portfolio risk before new capital is allocated. Rather than predicting market direction or generating trading signals, the system estimates market conditions through statistical analysis, volatility forecasting and market regime classification.
 
-The objective is to replace intuition with a repeatable, evidence-based investment process.
+The objective is to complement investor judgement with a repeatable, evidence-based decision process.
 
 ---
 
-## The problem
+## Project snapshot
 
-Financial markets are noisy, non-linear and difficult to predict.
-
-Classical forecasting techniques often perform no better than simple benchmarks when applied to daily returns, yet market volatility exhibits persistent statistical structure through clustering and changing regimes.
-
-This project asks a different question.
-
-> **Can historical market data be transformed into interpretable risk information that supports a repeatable investment decision process?**
-
-Rather than attempting to predict direction, the project focuses on estimating uncertainty.
+* **Asset:** S&P 500 index (^GSPC)
+* **History analysed:** January 2000 to June 2026
+* **Observations:** 6,658 trading days at the latest data refresh
+* **Forecast target:** 1-day-ahead conditional volatility
+* **Primary modelling framework:** GARCH family
+* **Validation:** walk-forward evaluation
 
 ---
 
@@ -58,6 +55,8 @@ Decision Log
 
 Every stage contributes to a single objective: producing a transparent, evidence-based assessment of current market risk.
 
+The output of each stage becomes the input to the next, so every figure in the final report is traceable back to raw market data.
+
 ---
 
 ## Daily Market Risk Report
@@ -70,6 +69,7 @@ S&P 500 Market Risk Report
 Date:                  2026-07-01
 
 Forecast volatility:   23.8% annualised
+Expected daily move:   ±1.2%
 Historical percentile: 89th
 Market regime:         Stress
 95% Value at Risk:     -2.1%
@@ -96,9 +96,60 @@ The investor remains responsible for every portfolio decision.
 
 ---
 
+## The problem
+
+Financial markets are noisy, non-linear and difficult to predict.
+
+Classical forecasting techniques often perform no better than simple benchmarks when applied to daily returns, yet market volatility exhibits persistent statistical structure through clustering and changing regimes.
+
+This project asks a different question.
+
+> **Can historical market data be transformed into interpretable risk information that supports a repeatable investment decision process?**
+
+Rather than attempting to predict direction, the project focuses on estimating uncertainty.
+
+---
+
+## Key findings
+
+Four results from the completed notebooks shape the system design.
+
+* Daily S&P 500 returns are stationary but strongly non-Gaussian, with heavy tails and negative skew.
+* Volatility clustering is statistically significant and persists across decades of market history.
+* Classical return forecasting models (ARIMA, SARIMA and Prophet) showed no improvement over a Historical Mean benchmark under walk-forward validation.
+* The absence of directional edge is consistent with weak-form market efficiency. The predictable structure in daily data sits in conditional volatility, not in returns, which makes volatility the appropriate modelling target.
+
+---
+
+## Why volatility instead of returns?
+
+Forecasting market direction with ARIMA, SARIMA and Prophet did not outperform a simple Historical Mean benchmark under walk-forward evaluation.
+
+Rather than introducing additional model complexity without evidential justification, the project shifted its modelling effort toward volatility, where the statistical diagnostics demonstrated persistent structure through conditional heteroskedasticity.
+
+The project now estimates market risk rather than predicting returns.
+
+---
+
+## Model selection philosophy
+
+Models are introduced only when statistical evidence justifies additional complexity.
+
+Each modelling stage begins with the simplest appropriate benchmark and increases complexity one assumption at a time, so the effect of each change is measured in isolation. Final selection rests on out-of-sample performance, residual diagnostics and information criteria rather than in-sample fit alone.
+
+---
+
+## Current volatility modelling
+
+Conditional heteroskedasticity, first identified in the statistical diagnostics, was reconfirmed on the modelling sample before any model was fitted. GARCH-family models were then built as a controlled ladder — ARCH(1), GARCH(1,1) under Normal and Student's t innovations, then GJR-GARCH — with each step changing exactly one assumption so any improvement is attributable to a specific modelling choice. Heavy-tailed innovations follow directly from the fat-tail diagnostics, and the asymmetric specification tests whether volatility responds more strongly to negative shocks, the leverage effect implied by the negative skew of daily returns.
+
+Model selection is handled by information criteria through a winner-selection registry, so the regime classifier, risk signal and summary always inherit the best-supported specification rather than a hardcoded choice. Every volatility model is evaluated out of sample against a naive persistence benchmark under walk-forward validation, and the regime classifier is checked against two known stress periods: the 2020 COVID crash and the 2022 rate-hike year.
+
+---
+
 ## Current capabilities
 
-### Data engineering
+### Data ingestion and validation
 
 * Download historical S&P 500 market data
 * Validate data quality before analysis
@@ -106,7 +157,7 @@ The investor remains responsible for every portfolio decision.
 * Verify trading calendar consistency
 * Export validated datasets for downstream modelling
 
-### Statistical analysis
+### Statistical diagnostics
 
 * Stationarity testing
 * Distribution analysis
@@ -125,7 +176,7 @@ The investor remains responsible for every portfolio decision.
 * Calendar variables
 * Bias-free feature construction
 
-### Forecasting
+### Direction forecasting
 
 * Historical Mean benchmark
 * ARIMA evaluation
@@ -133,7 +184,7 @@ The investor remains responsible for every portfolio decision.
 * Prophet evaluation
 * Walk-forward validation
 
-### Volatility modelling
+### Volatility forecasting
 
 * Realised volatility target construction
 * Naive persistence benchmark
@@ -160,22 +211,6 @@ The investor remains responsible for every portfolio decision.
 
 ---
 
-## Research findings
-
-The direction forecasting stage produced one result that shaped the rest of the system.
-
-Forecasting market direction using ARIMA, SARIMA and Prophet did not outperform a simple Historical Mean benchmark under walk-forward evaluation.
-
-Rather than introducing additional model complexity without evidential justification, the project shifted its modelling effort toward volatility forecasting, where the statistical diagnostics demonstrated persistent structure through conditional heteroskedasticity.
-
-The project now estimates market risk rather than predicting returns.
-
-The volatility stage put that decision to work. Conditional heteroskedasticity, first identified in the statistical diagnostics, was reconfirmed on the modelling sample before any model was fitted. GARCH-family models were then built as a controlled ladder — ARCH(1), GARCH(1,1) under Normal and Student's t innovations, then GJR-GARCH — with each step changing exactly one assumption so any improvement is attributable to a specific modelling choice. Heavy-tailed innovations follow directly from the fat-tail diagnostics, and the asymmetric specification tests whether volatility responds more strongly to negative shocks, the leverage effect implied by the negative skew of daily returns.
-
-Model selection is handled by information criteria through a winner-selection registry, so the regime classifier, risk signal and summary always inherit the best-supported specification rather than a hardcoded choice. Every volatility model is evaluated out of sample against a naive persistence benchmark under walk-forward validation, and the regime classifier is checked against two known stress periods: the 2020 COVID crash and the 2022 rate-hike year.
-
----
-
 ## Research workflow
 
 | Stage                    | Objective                        | Status |
@@ -191,13 +226,13 @@ Model selection is handled by information criteria through a winner-selection re
 
 ---
 
-## Methodology
+## Research principles
 
 * Data quality is verified before modelling.
 * Look-ahead bias is explicitly prevented.
+* Simple benchmarks are established before complex models.
+* Complexity is added only when it improves out-of-sample performance.
 * Walk-forward validation is preferred over random train-test splits.
-* Simpler models are preferred unless additional complexity improves out-of-sample performance.
-* Every modelling decision is supported by statistical evidence.
 * Every stage is reproducible and suitable for technical review.
 
 ---
@@ -237,7 +272,6 @@ Model selection is handled by information criteria through a winner-selection re
 
 ```text
 sp500-market-intelligence-system/
-
 │
 ├── notebooks/
 │   ├── 01_eda.ipynb
@@ -256,16 +290,18 @@ sp500-market-intelligence-system/
 ├── reports/
 │   └── figures/
 │
-├── environment.yml
+├── src/                # planned
+├── tests/              # planned
 │
+├── environment.yml
 └── README.md
 ```
 
-The repository currently focuses on the research phase. Notebooks 06 to 08 (deep learning comparison, anomaly detection, risk intelligence) are scheduled next and will be added under `notebooks/` as they are completed. Once the analytical work is complete, the notebooks will be modularised into a production-ready Python package.
+The repository currently focuses on the research phase. Notebooks 06 to 08 (deep learning comparison, anomaly detection, risk intelligence) are scheduled next and will be added under `notebooks/` as they are completed. Once the analytical work is complete, the reusable logic will be modularised into a production-ready Python package under `src/` with unit tests under `tests/`.
 
 ---
 
-## Production roadmap
+## Roadmap
 
 ### Research phase
 
@@ -286,6 +322,12 @@ The repository currently focuses on the research phase. Notebooks 06 to 08 (deep
 * Model Card
 * Automated execution
 * Configuration management
+
+### Future extensions
+
+* HAR-RV benchmark as an additional realised volatility comparison
+* Rolling GARCH parameter stability monitoring for structural break detection
+* VIX as a forward-looking input to the regime classifier
 
 ---
 
