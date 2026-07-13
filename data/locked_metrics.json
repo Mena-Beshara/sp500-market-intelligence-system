@@ -1,0 +1,16 @@
+{
+  "notebook_02": {
+    "skewness": -0.34924452198261763,
+    "excess_kurtosis": 10.648271420243091,
+    "jarque_bera_stat": 31580.532617503002,
+    "jarque_bera_p": 0.0,
+    "arch_lm_stat": 1779.98750733777,
+    "arch_lm_p": 0.0,
+    "arch_lm_nlags": 10
+  },
+  "notebook_04": {
+    "arima_order": "1,0,1",
+    "arima_rmse": 0.010623820276607998,
+    "historical_mean_rmse": 0.010623842428246006
+  }
+}
