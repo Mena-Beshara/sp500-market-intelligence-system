@@ -1,16 +1,59 @@
 {
   "notebook_02": {
-    "skewness": -0.34924452198261763,
-    "excess_kurtosis": 10.648271420243091,
-    "jarque_bera_stat": 31580.532617503002,
+    "skewness": -0.3485797493064962,
+    "excess_kurtosis": 10.653719534536036,
+    "jarque_bera_stat": 31654.951006816187,
     "jarque_bera_p": 0.0,
-    "arch_lm_stat": 1779.98750733777,
+    "arch_lm_stat": 1782.6031444976545,
     "arch_lm_p": 0.0,
     "arch_lm_nlags": 10
   },
   "notebook_04": {
     "arima_order": "1,0,1",
-    "arima_rmse": 0.010623820276607998,
-    "historical_mean_rmse": 0.010623842428246006
+    "arima_rmse": 0.010631380111625939,
+    "historical_mean_rmse": 0.010631258151475247
+  },
+  "notebook_05": {
+    "best_label": "GJR-GARCH(1,1,1) \u2014 Student's t",
+    "wf_rmse_garch": 0.005131362977565967,
+    "wf_mae_garch": 0.003870570321359247,
+    "wf_rmse_persistence": 0.007393344882769044,
+    "wf_mae_persistence": 0.005526675830093776,
+    "improvement_rmse_pct": 30.59483821017007
+  },
+  "notebook_06": {
+    "lstm_units": 32,
+    "lstm_total_params": 5537,
+    "mlp_hidden": 64,
+    "mlp_total_params": 13569,
+    "n_features": 10,
+    "lookback": 21,
+    "wf_rmse_lstm": 0.005231461139936148,
+    "wf_mae_lstm": 0.003866637695259425,
+    "wf_rmse_mlp": 0.007942137124182897,
+    "wf_mae_mlp": 0.00596859208648244,
+    "wf_rmse_persistence": 0.007416140488641777,
+    "wf_mae_persistence": 0.005544622369558268,
+    "lstm_vs_pers_rmse_pct": 29.45844070850039,
+    "lstm_vs_garch_rmse_pct": -2.516378099721792,
+    "mlp_vs_pers_rmse_pct": -7.092592654450278,
+    "mlp_vs_garch_rmse_pct": -55.63512956774224,
+    "garch_wins": true,
+    "lstm_beats_mlp": true,
+    "dm_stat_lstm_pers": 5.8705138538909525,
+    "dm_pval_lstm_pers": 4.344464741806134e-09,
+    "dm_stat_mlp_pers": -1.6587907813939489,
+    "dm_pval_mlp_pers": 0.09715795860402493,
+    "dm_stat_lstm_mlp": 8.216666566620521,
+    "dm_pval_lstm_mlp": 2.092377791517511e-16,
+    "wf_total_time_s": 1054.3,
+    "wf_lstm_time_s": 764.5,
+    "wf_mlp_time_s": 284.7,
+    "avg_epochs_lstm": 49.2,
+    "avg_epochs_mlp": 50.4,
+    "lstm_inference_ms": 111.02,
+    "mlp_inference_ms": 91.92,
+    "tf_version": "2.21.0",
+    "top_feature": "rsi_14"
   }
 }
