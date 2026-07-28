@@ -19,6 +19,7 @@ The objective is to complement investor judgement with a repeatable, evidence-ba
 * **Observations:** 6,658 trading days at the latest data refresh
 * **Forecast target:** 1-day-ahead conditional volatility
 * **Primary modelling framework:** GARCH family
+* **Selected volatility model:** GJR-GARCH(1,1,1), Student's t innovations
 * **Validation:** walk-forward evaluation
 
 ---
@@ -118,6 +119,7 @@ Four results from the completed notebooks shape the system design.
 * Volatility clustering is statistically significant and persists across decades of market history.
 * Classical return forecasting models (ARIMA, SARIMA and Prophet) showed no improvement over a Historical Mean benchmark under walk-forward validation.
 * The absence of directional edge is consistent with weak-form market efficiency. The predictable structure in daily data sits in conditional volatility, not in returns, which makes volatility the appropriate modelling target.
+* A GJR-GARCH(1,1,1) model with Student's t innovations reduced out-of-sample volatility forecast error by 30.2% against a persistence benchmark, confirming that conditional volatility carries exploitable structure.
 
 ---
 
@@ -144,6 +146,8 @@ Each modelling stage begins with the simplest appropriate benchmark and increase
 Conditional heteroskedasticity, first identified in the statistical diagnostics, was reconfirmed on the modelling sample before any model was fitted. GARCH-family models were then built as a controlled ladder — ARCH(1), GARCH(1,1) under Normal and Student's t innovations, then GJR-GARCH — with each step changing exactly one assumption so any improvement is attributable to a specific modelling choice. Heavy-tailed innovations follow directly from the fat-tail diagnostics, and the asymmetric specification tests whether volatility responds more strongly to negative shocks, the leverage effect implied by the negative skew of daily returns.
 
 Model selection is handled by information criteria through a winner-selection registry, so the regime classifier, risk signal and summary always inherit the best-supported specification rather than a hardcoded choice. Every volatility model is evaluated out of sample against a naive persistence benchmark under walk-forward validation, and the regime classifier is checked against two known stress periods: the 2020 COVID crash and the 2022 rate-hike year.
+
+The registry selected GJR-GARCH(1,1,1) with Student's t innovations. Over a 252-day walk-forward window it reduced forecast RMSE by 30.2% against the persistence benchmark (0.005103 versus 0.007315). An ARCH-LM test on the model's standardised residuals returned p = 0.39, so the conditional heteroskedasticity present in the raw returns was absorbed by the fitted model.
 
 ---
 
@@ -219,10 +223,12 @@ Model selection is handled by information criteria through a winner-selection re
 | Statistical diagnostics  | Characterise return behaviour    |   ✅   |
 | Feature engineering      | Create forecasting features      |   ✅   |
 | Direction forecasting    | Evaluate predictive edge         |   ✅   |
-| Volatility modelling     | Forecast conditional volatility  |   ✅   |
+| Volatility modelling     | Forecast conditional volatility  |   🔬   |
 | Deep learning comparison | Compare against GARCH            |   📋   |
 | Anomaly detection        | Detect structural market changes |   📋   |
 | Risk intelligence        | Generate Market Risk Report      |   📋   |
+
+Status: ✅ complete · 🔬 model selected, final review · 📋 planned
 
 ---
 
@@ -309,7 +315,7 @@ The repository currently focuses on the research phase. Notebooks 06 to 08 (deep
 * ✅ Statistical diagnostics
 * ✅ Feature engineering
 * ✅ Direction forecasting
-* ✅ Volatility forecasting
+* 🔬 Volatility forecasting (model selected, final review)
 * 📋 Deep learning comparison
 * 📋 Anomaly detection
 * 📋 Risk intelligence system
