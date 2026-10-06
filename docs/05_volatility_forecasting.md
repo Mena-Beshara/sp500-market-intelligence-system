@@ -59,8 +59,8 @@ print(f"Notebook 04 — ARIMA RMSE: {arima_rmse_nb04:.5f}, "
       f"historical-mean RMSE: {hist_mean_rmse_nb04:.5f}")
 ```
 
-    Notebook 02 — skewness: -0.3493, excess kurtosis: 10.6566, Jarque-Bera: 31,748.52
-    Notebook 04 — ARIMA RMSE: 0.01064, historical-mean RMSE: 0.01064
+    Notebook 02 — skewness: -0.3487, excess kurtosis: 10.6850, Jarque-Bera: 32,055.27
+    Notebook 04 — ARIMA RMSE: 0.01062, historical-mean RMSE: 0.01062
     
 
 
@@ -107,11 +107,11 @@ model evaluation.
 Notebook 04 established that the direction of daily S&P 500 log returns is
 difficult to forecast. ARIMA(1,0,1)
 matched the historical-mean baseline
-(RMSE 0.01064
+(RMSE 0.01062
 in both cases),
 a null result consistent with weak-form market efficiency. The residual
 diagnostics revealed structure in the *variance*: fat tails (excess kurtosis
-10.6566), negative skewness (-0.3493), and persistent
+10.6850), negative skewness (-0.3487), and persistent
 clustering in the ACF of squared residuals.
 
 This notebook targets that variance structure directly. The question is
@@ -168,7 +168,7 @@ df.shape
 
 
 
-    (6412, 64)
+    (6441, 64)
 
 
 
@@ -391,10 +391,10 @@ print(f'Daily volatility (std): {daily_vol:.6f}')
 print(f'Annualized volatility: {annualized_vol:.4f} ({annualized_vol*100:.2f}%)')
 ```
 
-    Observations: 6,412
-    Mean daily return: 0.000276
-    Daily volatility (std): 0.012057
-    Annualized volatility: 0.1914 (19.14%)
+    Observations: 6,441
+    Mean daily return: 0.000273
+    Daily volatility (std): 0.012037
+    Annualized volatility: 0.1911 (19.11%)
     
 
 
@@ -414,12 +414,12 @@ notebook shifts focus from return forecasting to volatility modelling.
 
 
 
-The dataset contains 6,412 daily observations spanning more than
-25 years, including periods of extreme stress (2008, 2020) and
+The dataset contains 6,441 daily observations spanning more than
+26 years, including periods of extreme stress (2008, 2020) and
 extended low-volatility regimes.
 
-Daily volatility (1.21%) is roughly 44
-times the mean daily return (0.028%). This imbalance is
+Daily volatility (1.20%) is roughly 44
+times the mean daily return (0.027%). This imbalance is
 typical in equity markets: returns are noisy and close to zero on average,
 while volatility is persistent and structured. That asymmetry is why this
 notebook shifts focus from return forecasting to volatility modelling.
@@ -473,8 +473,8 @@ print(f'Persistence Benchmark  RMSE: {rmse_persistence:.6f}  MAE: {mae_persisten
 print(f'EWMA (λ={ewma_lambda})       RMSE: {rmse_ewma:.6f}  MAE: {mae_ewma:.6f}')
 ```
 
-    Persistence Benchmark  RMSE: 0.010787  MAE: 0.007120
-    EWMA (λ=0.94)       RMSE: 0.008399  MAE: 0.006072
+    Persistence Benchmark  RMSE: 0.010770  MAE: 0.007109
+    EWMA (λ=0.94)       RMSE: 0.008385  MAE: 0.006059
     
 
 
@@ -513,13 +513,13 @@ bar.
 `persistence_forecast(t) = realised_vol(t-1)`. It is deliberately simple, and
 it works because volatility clusters: today's level carries real information
 about tomorrow's. Over the full sample it produced
-RMSE = 0.010787 and MAE = 0.007120.
+RMSE = 0.010770 and MAE = 0.007109.
 
 **EWMA (RiskMetrics, λ = 0.94)** is the industry-standard naive
 forecast. Conditional variance is an exponentially weighted moving average of
 squared returns — the same smooth-decay structure GARCH formalises, but with
 a fixed decay parameter and no distributional assumption. Over the full
-sample it produced RMSE = 0.008399 and MAE = 0.006072.
+sample it produced RMSE = 0.008385 and MAE = 0.006059.
 
 EWMA is the harder benchmark. Persistence copies a single noisy observation
 forward; EWMA smooths the history, so its forecast is less volatile and
@@ -555,7 +555,7 @@ print(f'LM Statistic: {arch_test[0]:.2f}')
 print(f'P-value: {arch_test[1]:.6f}')
 ```
 
-    LM Statistic: 1857.96
+    LM Statistic: 1867.15
     P-value: 0.000000
     
 
@@ -592,7 +592,7 @@ conditional heteroskedasticity — variance that changes over time rather than
 remaining constant.
 
 Engle's ARCH-LM test was applied to the daily log returns using 20 lags. The
-test returned **LM = 1,857.96**
+test returned **LM = 1,867.15**
 (**p ≈ 0**),
 rejecting the null hypothesis of constant variance.
 
@@ -675,8 +675,8 @@ ARIMA(1,0,1) matched the historical-mean baseline exactly. Modelling the mean
 beyond a constant would add parameters with no evidence behind them.
 
 **Innovation distribution.** Normal, to start. This is a deliberate
-simplification and a known misspecification: excess kurtosis of 10.6566 and
-skewness of -0.3493 were documented in Notebook 02. The Normal assumption is
+simplification and a known misspecification: excess kurtosis of 10.6850 and
+skewness of -0.3487 were documented in Notebook 02. The Normal assumption is
 kept for the first two fits so that, when Student's t innovations are
 introduced later, the improvement is attributable to the distributional
 change alone.
@@ -748,7 +748,7 @@ forward, it models today's conditional variance as a function of recent
 shocks, the squared surprises in past returns. A large move yesterday raises
 the variance expected today; a calm day lowers it. This is the mechanism
 behind volatility clustering, and it is the structure the ARCH-LM test
-(LM = 1,857.96,
+(LM = 1,867.15,
 p < 0.001)
 detected.
 
@@ -775,23 +775,23 @@ print(res_arch1.summary())
     ==============================================================================
     Dep. Variable:            log_returns   R-squared:                       0.000
     Mean Model:             Constant Mean   Adj. R-squared:                  0.000
-    Vol Model:                       ARCH   Log-Likelihood:               -9778.96
-    Distribution:                  Normal   AIC:                           19563.9
-    Method:            Maximum Likelihood   BIC:                           19584.2
-                                            No. Observations:                 6412
-    Date:                Tue, Aug 18 2026   Df Residuals:                     6411
-    Time:                        23:37:16   Df Model:                            1
+    Vol Model:                       ARCH   Log-Likelihood:               -9812.15
+    Distribution:                  Normal   AIC:                           19630.3
+    Method:            Maximum Likelihood   BIC:                           19650.6
+                                            No. Observations:                 6441
+    Date:                Tue, Sep 29 2026   Df Residuals:                     6440
+    Time:                        16:58:30   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
     ----------------------------------------------------------------------------
-    mu             0.0581  1.581e-02      3.678  2.349e-04 [2.716e-02,8.913e-02]
+    mu             0.0577  1.575e-02      3.665  2.478e-04 [2.684e-02,8.856e-02]
                                 Volatility Model                            
     ========================================================================
                      coef    std err          t      P>|t|  95.0% Conf. Int.
     ------------------------------------------------------------------------
-    omega          0.9112  4.758e-02     19.151  9.485e-82 [  0.818,  1.004]
-    alpha[1]       0.4017  5.506e-02      7.296  2.955e-13 [  0.294,  0.510]
+    omega          0.9084  4.728e-02     19.211  3.001e-82 [  0.816,  1.001]
+    alpha[1]       0.4013  5.486e-02      7.315  2.578e-13 [  0.294,  0.509]
     ========================================================================
     
     Covariance estimator: robust
@@ -833,9 +833,9 @@ show_model_table()
   <tbody>
     <tr>
       <th>ARCH(1) — Normal</th>
-      <td>-9778.957602</td>
-      <td>19563.915203</td>
-      <td>19584.212983</td>
+      <td>-9812.146411</td>
+      <td>19630.292822</td>
+      <td>19650.60414</td>
       <td>3.0</td>
       <td>0.0</td>
       <td>0.0</td>
@@ -892,17 +892,17 @@ p {'< 0.001' if lb_p_a1 < 0.001 else f'= {lb_p_a1:.4f}'}):
 """))
 ```
 
-    omega: 0.9112
-    alpha[1]: 0.4017 (p = 2.95e-13)
-    ARCH-LM on standardised residuals: LM = 1083.87, p = 0.000000
-    Ljung-Box on squared std residuals (lag 20): Q = 2456.94, p = 0.000000
+    omega: 0.9084
+    alpha[1]: 0.4013 (p = 2.58e-13)
+    ARCH-LM on standardised residuals: LM = 1089.33, p = 0.000000
+    Ljung-Box on squared std residuals (lag 20): Q = 2470.41, p = 0.000000
     
 
 
 
 #### Interpreting ARCH(1)
 
-The single ARCH coefficient is alpha[1] = 0.4017
+The single ARCH coefficient is alpha[1] = 0.4013
 (p < 0.001). Yesterday's
 squared shock carries real information about today's variance, confirming at
 the model level what the ARCH-LM test showed at the data level.
@@ -915,12 +915,12 @@ squared residuals showed clustering that persists across many lags, not one.
 The standardised residuals make this failure measurable. If ARCH(1) had
 captured the variance dynamics, its standardised residuals would show no
 remaining ARCH effects. The test returns
-LM = 1,083.87
+LM = 1,089.33
 (p < 0.001).
 Significant conditional heteroskedasticity survives the fit. One lag of squared shocks is not enough.
 
 The Ljung-Box test on squared standardised residuals corroborates
-(Q = 2,456.94,
+(Q = 2,470.41,
 p < 0.001):
 serial dependence in the squared residuals persists.
 
@@ -993,24 +993,24 @@ print(res_garch11.summary())
     ==============================================================================
     Dep. Variable:            log_returns   R-squared:                       0.000
     Mean Model:             Constant Mean   Adj. R-squared:                  0.000
-    Vol Model:                      GARCH   Log-Likelihood:               -8711.00
-    Distribution:                  Normal   AIC:                           17430.0
-    Method:            Maximum Likelihood   BIC:                           17457.1
-                                            No. Observations:                 6412
-    Date:                Tue, Aug 18 2026   Df Residuals:                     6411
-    Time:                        23:37:16   Df Model:                            1
+    Vol Model:                      GARCH   Log-Likelihood:               -8739.51
+    Distribution:                  Normal   AIC:                           17487.0
+    Method:            Maximum Likelihood   BIC:                           17514.1
+                                            No. Observations:                 6441
+    Date:                Tue, Sep 29 2026   Df Residuals:                     6440
+    Time:                        16:58:31   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
     ----------------------------------------------------------------------------
-    mu             0.0634  1.007e-02      6.297  3.032e-10 [4.366e-02,8.311e-02]
+    mu             0.0630  1.003e-02      6.283  3.319e-10 [4.334e-02,8.265e-02]
                                   Volatility Model                              
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
     ----------------------------------------------------------------------------
-    omega          0.0256  4.863e-03      5.264  1.411e-07 [1.607e-02,3.513e-02]
-    alpha[1]       0.1195  1.174e-02     10.178  2.479e-24   [9.647e-02,  0.142]
-    beta[1]        0.8597  1.261e-02     68.203      0.000     [  0.835,  0.884]
+    omega          0.0256  4.843e-03      5.277  1.314e-07 [1.606e-02,3.505e-02]
+    alpha[1]       0.1194  1.170e-02     10.203  1.932e-24   [9.647e-02,  0.142]
+    beta[1]        0.8597  1.257e-02     68.386      0.000     [  0.835,  0.884]
     ============================================================================
     
     Covariance estimator: robust
@@ -1052,21 +1052,21 @@ show_model_table()
   <tbody>
     <tr>
       <th>GARCH(1,1) — Normal</th>
-      <td>-8711.002062</td>
-      <td>17430.004123</td>
-      <td>17457.067829</td>
+      <td>-8739.512405</td>
+      <td>17487.024811</td>
+      <td>17514.106567</td>
       <td>4.0</td>
-      <td>0.00000</td>
-      <td>0.00000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
     </tr>
     <tr>
       <th>ARCH(1) — Normal</th>
-      <td>-9778.957602</td>
-      <td>19563.915203</td>
-      <td>19584.212983</td>
+      <td>-9812.146411</td>
+      <td>19630.292822</td>
+      <td>19650.604140</td>
       <td>3.0</td>
-      <td>2133.91108</td>
-      <td>-1067.95554</td>
+      <td>2143.268012</td>
+      <td>-1072.634006</td>
     </tr>
   </tbody>
 </table>
@@ -1135,20 +1135,20 @@ replaces the Normal with Student's t and measures what changes.
 """))
 ```
 
-    alpha[1]: 0.1195
+    alpha[1]: 0.1194
     beta[1]: 0.8597
-    Persistence (alpha + beta): 0.9792
-    Volatility half-life: 33.0 trading days
-    ARCH-LM on standardised residuals: LM = 21.46, p = 0.370363
-    Ljung-Box on squared std residuals (lag 20): Q = 20.80, p = 0.409036
+    Persistence (alpha + beta): 0.9791
+    Volatility half-life: 32.9 trading days
+    ARCH-LM on standardised residuals: LM = 21.68, p = 0.357861
+    Ljung-Box on squared std residuals (lag 20): Q = 21.01, p = 0.396551
     
 
 
 
 #### Interpreting GARCH(1,1)
 
-Persistence is alpha + beta = 0.9792. A shock to volatility decays
-with a half-life of 33.0 trading days — roughly
+Persistence is alpha + beta = 0.9791. A shock to volatility decays
+with a half-life of 32.9 trading days — roughly
 1.6 trading months. This is the long memory ARCH(1) could not
 represent, delivered by one additional parameter. The half-life follows from
 geometry: under GARCH(1,1) a variance shock decays at rate alpha + beta per
@@ -1163,22 +1163,22 @@ undefined. The condition holds here.
 
 The division of labour between the two coefficients is informative.
 Beta (0.8597) dominates: most of today's variance is inherited from
-yesterday's variance estimate. Alpha (0.1195) is the reactive
+yesterday's variance estimate. Alpha (0.1194) is the reactive
 component, the weight placed on yesterday's squared shock. Volatility under
 this model is a slow-moving state occasionally jolted by news, not a fresh
 draw each day.
 
 The standardised residuals now return
-LM = 21.46
-(p = 0.3704) on the ARCH-LM test,
+LM = 21.68
+(p = 0.3579) on the ARCH-LM test,
 corroborated by the Ljung-Box test on squared residuals
-(Q = 20.80,
-p = 0.4090).
+(Q = 21.01,
+p = 0.3966).
 The variance dynamics are captured; no significant clustering remains in either test.
 
 What the Normal-innovation fit cannot fix is the distribution itself. The
 model assumes standardised residuals are Gaussian; the data said otherwise
-in Notebook 02 (excess kurtosis 10.6566). That mismatch distorts the
+in Notebook 02 (excess kurtosis 10.6850). That mismatch distorts the
 likelihood and, through it, the parameter estimates. The next section
 replaces the Normal with Student's t and measures what changes.
 
@@ -1228,8 +1228,8 @@ change alone. That was the point of fitting Normal first.
 
 
 The GARCH(1,1) fit captured the variance dynamics but kept a distributional
-assumption the data rejected in Notebook 02: excess kurtosis 10.6566,
-skewness -0.3493, Jarque–Bera 31,748.52
+assumption the data rejected in Notebook 02: excess kurtosis 10.6850,
+skewness -0.3487, Jarque–Bera 32,055.27
 (p < 0.001). Under a Normal, a
 four-sigma daily move is a once-in-decades event. This sample contains many.
 When the likelihood treats observed tail events as near-impossibilities, the
@@ -1257,29 +1257,29 @@ print(res_garch11_t.summary())
     ====================================================================================
     Dep. Variable:                  log_returns   R-squared:                       0.000
     Mean Model:                   Constant Mean   Adj. R-squared:                  0.000
-    Vol Model:                            GARCH   Log-Likelihood:               -8555.85
-    Distribution:      Standardized Student's t   AIC:                           17121.7
-    Method:                  Maximum Likelihood   BIC:                           17155.5
-                                                  No. Observations:                 6412
-    Date:                      Tue, Aug 18 2026   Df Residuals:                     6411
-    Time:                              23:37:17   Df Model:                            1
+    Vol Model:                            GARCH   Log-Likelihood:               -8585.33
+    Distribution:      Standardized Student's t   AIC:                           17180.7
+    Method:                  Maximum Likelihood   BIC:                           17214.5
+                                                  No. Observations:                 6441
+    Date:                      Tue, Sep 29 2026   Df Residuals:                     6440
+    Time:                              16:58:31   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
     ----------------------------------------------------------------------------
-    mu             0.0819  8.952e-03      9.146  5.904e-20 [6.433e-02,9.942e-02]
+    mu             0.0811  8.936e-03      9.072  1.167e-19 [6.355e-02,9.858e-02]
                                   Volatility Model                              
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
     ----------------------------------------------------------------------------
-    omega          0.0160  3.203e-03      4.991  5.993e-07 [9.710e-03,2.227e-02]
-    alpha[1]       0.1236  1.080e-02     11.445  2.505e-30     [  0.102,  0.145]
-    beta[1]        0.8707  1.038e-02     83.916      0.000     [  0.850,  0.891]
+    omega          0.0160  3.200e-03      5.010  5.449e-07 [9.761e-03,2.231e-02]
+    alpha[1]       0.1232  1.076e-02     11.451  2.313e-30     [  0.102,  0.144]
+    beta[1]        0.8708  1.037e-02     83.955      0.000     [  0.850,  0.891]
                                   Distribution                              
     ========================================================================
                      coef    std err          t      P>|t|  95.0% Conf. Int.
     ------------------------------------------------------------------------
-    nu             6.0892      0.473     12.874  6.328e-38 [  5.162,  7.016]
+    nu             6.1410      0.479     12.824  1.198e-37 [  5.202,  7.080]
     ========================================================================
     
     Covariance estimator: robust
@@ -1321,30 +1321,30 @@ show_model_table()
   <tbody>
     <tr>
       <th>GARCH(1,1) — Student's t</th>
-      <td>-8555.852278</td>
-      <td>17121.704556</td>
-      <td>17155.534189</td>
+      <td>-8585.331982</td>
+      <td>17180.663963</td>
+      <td>17214.516159</td>
       <td>5.0</td>
       <td>0.000000</td>
       <td>0.000000</td>
     </tr>
     <tr>
       <th>GARCH(1,1) — Normal</th>
-      <td>-8711.002062</td>
-      <td>17430.004123</td>
-      <td>17457.067829</td>
+      <td>-8739.512405</td>
+      <td>17487.024811</td>
+      <td>17514.106567</td>
       <td>4.0</td>
-      <td>308.299567</td>
-      <td>-155.149783</td>
+      <td>306.360848</td>
+      <td>-154.180424</td>
     </tr>
     <tr>
       <th>ARCH(1) — Normal</th>
-      <td>-9778.957602</td>
-      <td>19563.915203</td>
-      <td>19584.212983</td>
+      <td>-9812.146411</td>
+      <td>19630.292822</td>
+      <td>19650.604140</td>
       <td>3.0</td>
-      <td>2442.210647</td>
-      <td>-1223.105323</td>
+      <td>2449.628859</td>
+      <td>-1226.814430</td>
     </tr>
   </tbody>
 </table>
@@ -1397,35 +1397,35 @@ LM = {arch_test_resid_t[0]:,.2f}
 """))
 ```
 
-    nu (degrees of freedom): 6.09
-    alpha[1]: 0.1236
-    beta[1]: 0.8707
-    Persistence (alpha + beta): 0.9943
-    Volatility half-life: 122.3 trading days
-    Log-likelihood gain vs Normal: 155.15
-    AIC improvement vs Normal: 308.30
-    ARCH-LM on standardised residuals: LM = 23.73, p = 0.254258
+    nu (degrees of freedom): 6.14
+    alpha[1]: 0.1232
+    beta[1]: 0.8708
+    Persistence (alpha + beta): 0.9940
+    Volatility half-life: 115.6 trading days
+    Log-likelihood gain vs Normal: 154.18
+    AIC improvement vs Normal: 306.36
+    ARCH-LM on standardised residuals: LM = 23.91, p = 0.246260
     
 
 
 
 #### Interpreting the Student's t fit
 
-The estimated degrees of freedom is nu = 6.09.
+The estimated degrees of freedom is nu = 6.14.
 This is deep in heavy-tail territory: after accounting for time-varying variance, daily shocks remain far from Gaussian, and the model now says so explicitly instead of distorting other parameters to compensate.
 
-The log-likelihood improves by 155.15 and AIC falls by 308.30
+The log-likelihood improves by 154.18 and AIC falls by 306.36
 from one added parameter. The variance equation is identical across the two
 specifications, so the entire gain comes from the distributional assumption:
-the heavy tails documented in Notebook 02 (excess kurtosis 10.6566) are
+the heavy tails documented in Notebook 02 (excess kurtosis 10.6850) are
 better represented by a Student's t than by a Gaussian. Persistence moves
-from 0.9792 under the Normal to 0.9943 here — a
+from 0.9791 under the Normal to 0.9940 here — a
 measure of how much the distributional misspecification was leaking into the
 variance estimates.
 
 On the ARCH-LM test the standardised residuals return
-LM = 23.73
-(p = 0.2543).
+LM = 23.91
+(p = 0.2463).
 No significant clustering remains; the variance dynamics are captured.
 
 
@@ -1462,9 +1462,9 @@ fig.add_shape(type='line', x0=lo, y0=lo, x1=hi, y1=hi,
 fig
 ```
 
-    Excess kurtosis, raw returns (pandas G2):        11.3102
-    Excess kurtosis, standardised residuals (G2):    2.0741
-    Locked NB02 value for comparison:                10.6566
+    Excess kurtosis, raw returns (pandas G2):        11.3407
+    Excess kurtosis, standardised residuals (G2):    2.0627
+    Locked NB02 value for comparison:                10.6850
     
 
 
@@ -1498,9 +1498,9 @@ even after the distributional change.
 Standardisation is the model's claim made testable: if the conditional
 variance path is right, dividing each return by its conditional volatility
 should strip out the clustering-driven part of the fat tails. Excess kurtosis
-falls from 11.3102 in the raw returns to 2.0741 in the
+falls from 11.3407 in the raw returns to 2.0627 in the
 standardised residuals (both computed with the pandas bias-corrected G2
-estimator, the same estimator used for the 10.6566 locked in Notebook 02;
+estimator, the same estimator used for the 10.6850 locked in Notebook 02;
 the difference reflects the extended dataset in this notebook versus the
 shorter sample NB02 was locked on).
 Most of the unconditional fat-tailedness was volatility clustering in disguise; what remains is the genuinely heavy-tailed shock distribution the Student t is there to model.
@@ -1550,7 +1550,7 @@ covariance-stationarity condition applies to that adjusted sum.
 Every model so far treats shocks symmetrically. The variance equation
 responds to the squared shock, and squaring erases the sign: a -2% day and a
 +2% day raise tomorrow's expected variance by the same amount. The data
-disagrees with that symmetry. Skewness of -0.3493 was documented in
+disagrees with that symmetry. Skewness of -0.3487 was documented in
 Notebook 02, and equity markets show a leverage effect: negative returns
 raise future volatility more than positive returns of the same size. Falling
 prices raise corporate leverage ratios, and fear propagates faster than
@@ -1587,30 +1587,30 @@ print(res_gjr.summary())
     ====================================================================================
     Dep. Variable:                  log_returns   R-squared:                       0.000
     Mean Model:                   Constant Mean   Adj. R-squared:                  0.000
-    Vol Model:                        GJR-GARCH   Log-Likelihood:               -8447.40
-    Distribution:      Standardized Student's t   AIC:                           16906.8
-    Method:                  Maximum Likelihood   BIC:                           16947.4
-                                                  No. Observations:                 6412
-    Date:                      Tue, Aug 18 2026   Df Residuals:                     6411
-    Time:                              23:37:17   Df Model:                            1
+    Vol Model:                        GJR-GARCH   Log-Likelihood:               -8476.24
+    Distribution:      Standardized Student's t   AIC:                           16964.5
+    Method:                  Maximum Likelihood   BIC:                           17005.1
+                                                  No. Observations:                 6441
+    Date:                      Tue, Sep 29 2026   Df Residuals:                     6440
+    Time:                              16:58:31   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
     ----------------------------------------------------------------------------
-    mu             0.0540  9.041e-03      5.970  2.379e-09 [3.625e-02,7.169e-02]
+    mu             0.0531  9.031e-03      5.876  4.196e-09 [3.537e-02,7.077e-02]
                                    Volatility Model                              
     =============================================================================
                      coef    std err          t      P>|t|       95.0% Conf. Int.
     -----------------------------------------------------------------------------
-    omega          0.0186  3.217e-03      5.783  7.328e-09  [1.230e-02,2.491e-02]
-    alpha[1]       0.0000  9.070e-03      0.000      1.000 [-1.778e-02,1.778e-02]
-    gamma[1]       0.2037  2.086e-02      9.767  1.559e-22      [  0.163,  0.245]
-    beta[1]        0.8809  1.246e-02     70.676      0.000      [  0.857,  0.905]
+    omega          0.0186  3.209e-03      5.809  6.269e-09  [1.235e-02,2.493e-02]
+    alpha[1]       0.0000  9.063e-03      0.000      1.000 [-1.776e-02,1.776e-02]
+    gamma[1]       0.2033  2.076e-02      9.796  1.170e-22      [  0.163,  0.244]
+    beta[1]        0.8811  1.245e-02     70.786      0.000      [  0.857,  0.905]
                                   Distribution                              
     ========================================================================
                      coef    std err          t      P>|t|  95.0% Conf. Int.
     ------------------------------------------------------------------------
-    nu             6.7019      0.585     11.451  2.317e-30 [  5.555,  7.849]
+    nu             6.7601      0.593     11.400  4.161e-30 [  5.598,  7.922]
     ========================================================================
     
     Covariance estimator: robust
@@ -1652,39 +1652,39 @@ show_model_table()
   <tbody>
     <tr>
       <th>GJR-GARCH(1,1,1) — Student's t</th>
-      <td>-8447.397385</td>
-      <td>16906.794771</td>
-      <td>16947.390330</td>
+      <td>-8476.235699</td>
+      <td>16964.471398</td>
+      <td>17005.094033</td>
       <td>6.0</td>
       <td>0.000000</td>
       <td>0.000000</td>
     </tr>
     <tr>
       <th>GARCH(1,1) — Student's t</th>
-      <td>-8555.852278</td>
-      <td>17121.704556</td>
-      <td>17155.534189</td>
+      <td>-8585.331982</td>
+      <td>17180.663963</td>
+      <td>17214.516159</td>
       <td>5.0</td>
-      <td>214.909785</td>
-      <td>-108.454893</td>
+      <td>216.192565</td>
+      <td>-109.096282</td>
     </tr>
     <tr>
       <th>GARCH(1,1) — Normal</th>
-      <td>-8711.002062</td>
-      <td>17430.004123</td>
-      <td>17457.067829</td>
+      <td>-8739.512405</td>
+      <td>17487.024811</td>
+      <td>17514.106567</td>
       <td>4.0</td>
-      <td>523.209352</td>
-      <td>-263.604676</td>
+      <td>522.553413</td>
+      <td>-263.276706</td>
     </tr>
     <tr>
       <th>ARCH(1) — Normal</th>
-      <td>-9778.957602</td>
-      <td>19563.915203</td>
-      <td>19584.212983</td>
+      <td>-9812.146411</td>
+      <td>19630.292822</td>
+      <td>19650.604140</td>
       <td>3.0</td>
-      <td>2657.120432</td>
-      <td>-1331.560216</td>
+      <td>2665.821424</td>
+      <td>-1335.910712</td>
     </tr>
   </tbody>
 </table>
@@ -1753,23 +1753,23 @@ Q = {lb_stat_gjr:,.2f}
 ```
 
     alpha[1]: 0.0000e+00 (p = 1.0000)
-    gamma[1]: 0.2037 (p = 1.56e-22)
-    beta[1]: 0.8809
-    Persistence (alpha + gamma/2 + beta): 0.9828
-    AIC change vs symmetric GARCH-t: +214.91
-    ARCH-LM on standardised residuals: LM = 18.34, p = 0.565307
-    Ljung-Box on squared std residuals (lag 20): Q = 17.05, p = 0.649561
+    gamma[1]: 0.2033 (p = 1.17e-22)
+    beta[1]: 0.8811
+    Persistence (alpha + gamma/2 + beta): 0.9827
+    AIC change vs symmetric GARCH-t: +216.19
+    ARCH-LM on standardised residuals: LM = 18.44, p = 0.558185
+    Ljung-Box on squared std residuals (lag 20): Q = 17.16, p = 0.642337
     
 
 
 
 #### Interpreting GJR-GARCH
 
-The asymmetry parameter is gamma = 0.2037
+The asymmetry parameter is gamma = 0.2033
 (p < 0.001).
-The leverage effect is confirmed at the model level. A negative shock feeds into next-day variance with weight alpha + gamma = 0.2037, against 0.0000e+00 for a positive shock of the same size. The sign of a move carries information the squared shock alone discards, consistent with the negative skewness (-0.3493) documented in Notebook 02.
+The leverage effect is confirmed at the model level. A negative shock feeds into next-day variance with weight alpha + gamma = 0.2033, against 0.0000e+00 for a positive shock of the same size. The sign of a move carries information the squared shock alone discards, consistent with the negative skewness (-0.3487) documented in Notebook 02.
 
-AIC improves by 214.91 over the symmetric Student t fit.
+AIC improves by 216.19 over the symmetric Student t fit.
 For the regime classifier downstream, this matters most in Stress and Crisis:
 an asymmetric model re-rates risk upward faster after drawdowns, which is
 when the classification is consequential.
@@ -1790,8 +1790,8 @@ consistent with the leverage effect but more extreme than most equity-index
 estimates in the literature. It survives the AIC comparison, so the
 specification earns its place, but the boundary deserves honest reporting.
 The Ljung-Box test on squared standardised residuals returns
-Q = 17.05
-(p = 0.6496),
+Q = 17.16
+(p = 0.6423),
 confirming no residual serial dependence in variance.
 
 
@@ -1855,39 +1855,39 @@ persistence benchmark on data neither has seen.
   <tbody>
     <tr>
       <th>GJR-GARCH(1,1,1) — Student's t</th>
-      <td>-8447.397385</td>
-      <td>16906.794771</td>
-      <td>16947.390330</td>
+      <td>-8476.235699</td>
+      <td>16964.471398</td>
+      <td>17005.094033</td>
       <td>6.0</td>
       <td>0.000000</td>
       <td>0.000000</td>
     </tr>
     <tr>
       <th>GARCH(1,1) — Student's t</th>
-      <td>-8555.852278</td>
-      <td>17121.704556</td>
-      <td>17155.534189</td>
+      <td>-8585.331982</td>
+      <td>17180.663963</td>
+      <td>17214.516159</td>
       <td>5.0</td>
-      <td>214.909785</td>
-      <td>-108.454893</td>
+      <td>216.192565</td>
+      <td>-109.096282</td>
     </tr>
     <tr>
       <th>GARCH(1,1) — Normal</th>
-      <td>-8711.002062</td>
-      <td>17430.004123</td>
-      <td>17457.067829</td>
+      <td>-8739.512405</td>
+      <td>17487.024811</td>
+      <td>17514.106567</td>
       <td>4.0</td>
-      <td>523.209352</td>
-      <td>-263.604676</td>
+      <td>522.553413</td>
+      <td>-263.276706</td>
     </tr>
     <tr>
       <th>ARCH(1) — Normal</th>
-      <td>-9778.957602</td>
-      <td>19563.915203</td>
-      <td>19584.212983</td>
+      <td>-9812.146411</td>
+      <td>19630.292822</td>
+      <td>19650.604140</td>
       <td>3.0</td>
-      <td>2657.120432</td>
-      <td>-1331.560216</td>
+      <td>2665.821424</td>
+      <td>-1335.910712</td>
     </tr>
   </tbody>
 </table>
@@ -2071,7 +2071,7 @@ print(f'Forecasts produced: {len(wf)}')
 
     Winner:    GJR-GARCH(1,1,1) — Student's t
     Runner-up: GARCH(1,1) — Student's t
-    Walk-forward window: 2025-08-14 to 2026-08-14
+    Walk-forward window: 2025-09-25 to 2026-09-25
     Forecasts produced: 252
     
 
@@ -2241,31 +2241,31 @@ not a change in forecasting skill.
   <tbody>
     <tr>
       <th>Persistence (test window)</th>
-      <td>0.007438</td>
-      <td>0.005514</td>
+      <td>0.007562</td>
+      <td>0.005686</td>
       <td>NaN</td>
     </tr>
     <tr>
       <th>EWMA λ=0.94 (test window)</th>
-      <td>0.005683</td>
-      <td>0.004586</td>
-      <td>1.680345</td>
+      <td>0.005694</td>
+      <td>0.004600</td>
+      <td>1.696274</td>
     </tr>
     <tr>
       <th>GJR-GARCH(1,1,1) — Student's t (E|r| adjusted)</th>
-      <td>0.005206</td>
-      <td>0.003964</td>
-      <td>1.825429</td>
+      <td>0.005233</td>
+      <td>0.004000</td>
+      <td>1.855085</td>
     </tr>
     <tr>
       <th>GARCH(1,1) — Student's t (E|r| adjusted)</th>
-      <td>0.005332</td>
-      <td>0.004084</td>
-      <td>1.881063</td>
+      <td>0.005353</td>
+      <td>0.004106</td>
+      <td>1.906233</td>
     </tr>
     <tr>
       <th>GJR-GARCH(1,1,1) — Student's t (raw sigma)</th>
-      <td>0.005714</td>
+      <td>0.005733</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -2274,13 +2274,13 @@ not a change in forecasting skill.
 </div>
 
 
-    RMSE change vs persistence: +30.0%
-    RMSE change vs EWMA:        +8.4%
+    RMSE change vs persistence: +30.8%
+    RMSE change vs EWMA:        +8.1%
     
     Diebold-Mariano (Newey-West HAC):
-      vs Persistence (SE loss): DM = 5.246, p = 0.0000
-      vs EWMA (SE loss):        DM = 4.261, p = 0.0000
-      vs EWMA (QLIKE loss):     DM = -1.517, p = 0.1293
+      vs Persistence (SE loss): DM = 5.519, p = 0.0000
+      vs EWMA (SE loss):        DM = 4.122, p = 0.0000
+      vs EWMA (QLIKE loss):     DM = -1.663, p = 0.0962
     
 
 
@@ -2292,23 +2292,23 @@ Both benchmarks and both GARCH specifications were evaluated on the same
 and MAE because it remains a consistent loss function even when the
 volatility proxy is noisy — a property squared-error loss does not have.
 
-**Persistence** produced RMSE = 0.007438.
-**EWMA (λ = 0.94)** produced RMSE = 0.005683 — already
+**Persistence** produced RMSE = 0.007562.
+**EWMA (λ = 0.94)** produced RMSE = 0.005694 — already
 a large improvement over persistence, confirming that most of the persistence benchmark's weakness is its reliance on a single noisy observation rather than smooth decay.
 **GJR-GARCH(1,1,1) — Student's t** (E|r|-adjusted) produced
-RMSE = 0.005206, a 30.0% reduction vs
-persistence and a +8.4% change vs EWMA.
+RMSE = 0.005233, a 30.8% reduction vs
+persistence and a +8.1% change vs EWMA.
 The model beats both benchmarks, including the tougher EWMA bar. The gain over EWMA is the value of estimated (rather than fixed) decay and distributional modelling.
 
-**GARCH(1,1) — Student's t** produced RMSE = 0.005332.
+**GARCH(1,1) — Student's t** produced RMSE = 0.005353.
 The in-sample AIC ranking holds out of sample: the asymmetric specification retains its edge.
 
 The Diebold-Mariano test (Newey-West HAC variance, squared-error loss) asks
 whether each RMSE difference is distinguishable from noise. Against
-persistence, DM = 5.246
+persistence, DM = 5.519
 (p < 0.001) —
 a statistically significant improvement.
-Against EWMA, DM = 4.261
+Against EWMA, DM = 4.122
 (p < 0.001) —
 a significant edge over the industry-standard naive forecast.
 
@@ -2316,14 +2316,14 @@ The QLIKE column tells a different story. EWMA scores lower (better) than
 both GARCH specifications. QLIKE penalises proportional forecast errors more
 heavily than squared-error loss, so it is more sensitive to days where the
 model overshoots relative to realised volatility. A Diebold-Mariano test
-under QLIKE loss returns DM = -1.517
-(p = 0.1293) —
+under QLIKE loss returns DM = -1.663
+(p = 0.0962) —
 not significant at the 5% level. The EWMA advantage under QLIKE is directional but not distinguishable from noise in this window.
 Persistence is excluded from QLIKE because its near-zero forecasts on flat
 days make the loss undefined.
 
 For reference, the unadjusted sigma forecasts score
-RMSE = 0.005714 against the same target. The difference between
+RMSE = 0.005733 against the same target. The difference between
 the two GJR-GARCH(1,1,1) — Student's t rows is the unit-mismatch effect the conversion removes,
 not a change in forecasting skill.
 
@@ -2418,16 +2418,16 @@ print(regime_df['regime'].value_counts())
 ```
 
     Thresholds (annualised volatility):
-      Calm   < 0.1024
-      Normal < 0.1941
-      Stress < 0.3380
-      Crisis >= 0.3380
+      Calm   < 0.1023
+      Normal < 0.1935
+      Stress < 0.3376
+      Crisis >= 0.3376
     
     regime
-    Normal    3206
-    Calm      1603
-    Stress    1282
-    Crisis     321
+    Normal    3220
+    Calm      1611
+    Stress    1288
+    Crisis     322
     Name: count, dtype: int64
     
 
@@ -2601,13 +2601,13 @@ never the absolute-move row.
 
 
 
-### Risk intelligence summary — as of 2026-08-14
+### Risk intelligence summary — as of 2026-09-25
 
 | Quantity | Value |
 |---|---|
-| Next-day conditional standard deviation | 0.6317% daily (10.03% annualised) |
-| Expected absolute daily move | 0.4781% |
-| Historical percentile | 23% |
+| Next-day conditional standard deviation | 0.6446% daily (10.23% annualised) |
+| Expected absolute daily move | 0.4882% |
+| Historical percentile | 25% |
 | Regime | **Calm** |
 
 Volatility sits in the bottom quartile of its historical distribution. The forecast is produced by GJR-GARCH(1,1,1) — Student's t,
@@ -2620,7 +2620,7 @@ losses. The conditional standard deviation is the model's sigma: the input to
 VaR-style calculations, where a loss threshold is sigma scaled by a quantile
 of the fitted innovation distribution. The expected absolute daily move is
 c × sigma, the expectation of tomorrow's |return| — a typical move, not a
-bad one. Turning the 10.0% annualised figure into a potential
+bad one. Turning the 10.2% annualised figure into a potential
 daily loss uses the standard deviation row and a chosen confidence level,
 never the absolute-move row.
 
@@ -2686,27 +2686,27 @@ the test.
 
 
 
-The ARCH-LM test (LM = 1,857.96, p ≈ 0) confirmed conditional
+The ARCH-LM test (LM = 1,867.15, p ≈ 0) confirmed conditional
 heteroskedasticity in daily returns. ARCH(1) validated the mechanism but not
 the memory: significant ARCH effects survived in its standardised residuals
 (both ARCH-LM and Ljung-Box on squared residuals). GARCH(1,1) fixed that
 with one parameter. The distributional change from Normal to Student's t
-(nu = 6.09) improved AIC by 308.30 with the variance equation
+(nu = 6.14) improved AIC by 306.36 with the variance equation
 held fixed, isolating the value of modelling the tails honestly.
-GJR-GARCH then confirmed the leverage effect: gamma = 0.2037, so negative shocks raise next-day variance with weight 0.2037 against 0.0000e+00 for positive shocks of the same size. Alpha pinning at its lower bound means all shock-driven variance flows through the asymmetry channel, a boundary result flagged in section 5.5.
+GJR-GARCH then confirmed the leverage effect: gamma = 0.2033, so negative shocks raise next-day variance with weight 0.2033 against 0.0000e+00 for positive shocks of the same size. Alpha pinning at its lower bound means all shock-driven variance flows through the asymmetry channel, a boundary result flagged in section 5.5.
 The AIC winner, GJR-GARCH(1,1,1) — Student's t, advanced to every downstream section.
 
 Out of sample, two benchmarks were tested rather than one: persistence
 (single-lag absolute return) and EWMA (RiskMetrics λ = 0.94), the
 industry-standard naive forecast. GJR-GARCH(1,1,1) — Student's t
-beat persistence by 30.0% on RMSE (DM p < 0.001) and also beat EWMA by 8.4% (DM p <0.001) over the final 252 trading days.
+beat persistence by 30.8% on RMSE (DM p < 0.001) and also beat EWMA by 8.1% (DM p <0.001) over the final 252 trading days.
 The runner-up (GARCH(1,1) — Student's t) was also evaluated out of sample
 (confirming the in-sample AIC ranking holds).
 QLIKE (Patton 2011) was reported alongside RMSE and MAE as a
 proxy-consistent loss function. Under QLIKE, EWMA scored lower than both
 GARCH specifications — a directional reversal of the RMSE ranking, though
-not significant at the 5% level (DM = -1.517,
-p = 0.1293).
+not significant at the 5% level (DM = -1.663,
+p = 0.0962).
 
 The regime classifier's validation against the 2020 COVID crash and the 2022
 rate-hike cycle is reported in section 7, and the notebook closes with the
@@ -2789,6 +2789,15 @@ try:
 except (NameError, AttributeError, KeyError) as e:
     print(f'Skipped garch_persistence: {e}')
 
+try:
+    metrics['notebook_05']['garch_nu'] = float(best_res.params['nu'])
+    metrics['notebook_05']['garch_nu_nobs'] = int(best_res.nobs)
+    metrics['notebook_05']['garch_gamma'] = float(best_res.params['gamma[1]'])
+    metrics['notebook_05']['garch_alpha'] = float(best_res.params['alpha[1]'])
+    metrics['notebook_05']['garch_beta'] = float(best_res.params['beta[1]'])
+except (NameError, AttributeError, KeyError) as e:
+    print(f'Skipped garch_nu: {e}')
+
 metrics_path.write_text(json.dumps(metrics, indent=2))
 
 print(f'Exported notebook_05 metrics to {metrics_path.resolve()}')
@@ -2798,25 +2807,25 @@ for k, v in metrics['notebook_05'].items():
 
     Exported notebook_05 metrics to C:\Users\Mena\Documents\Python\sp500-market-intelligence\data\locked_metrics.json
       best_label: GJR-GARCH(1,1,1) — Student's t
-      wf_rmse_garch: 0.005206427586318169
-      wf_mae_garch: 0.003964307292970376
-      wf_rmse_persistence: 0.007438077359303796
-      wf_mae_persistence: 0.0055138317645078054
-      wf_rmse_ewma: 0.0056829434700153775
-      wf_mae_ewma: 0.0045862660107591074
-      improvement_rmse_pct: 30.00304601825907
-      improvement_vs_ewma_pct: 8.385018894019003
-      dm_stat_vs_persistence: 5.246419922106737
-      dm_p_vs_persistence: 1.5508320849733082e-07
-      dm_stat_vs_ewma: 4.26138434011704
-      dm_p_vs_ewma: 2.0316449053758845e-05
-      dm_stat_vs_ewma_qlike: -1.5170117493943702
-      dm_p_vs_ewma_qlike: 0.12926371760874122
+      wf_rmse_garch: 0.0052333492427069535
+      wf_mae_garch: 0.004000328198434986
+      wf_rmse_persistence: 0.0075617841947451326
+      wf_mae_persistence: 0.005685889011073224
+      wf_rmse_ewma: 0.005694124773980802
+      wf_mae_ewma: 0.004599503769557551
+      improvement_rmse_pct: 30.792137041629207
+      improvement_vs_ewma_pct: 8.092122135773245
+      dm_stat_vs_persistence: 5.519348135344194
+      dm_p_vs_persistence: 3.402595027957034e-08
+      dm_stat_vs_ewma: 4.122247930534401
+      dm_p_vs_ewma: 3.751930676276771e-05
+      dm_stat_vs_ewma_qlike: -1.6634031687963249
+      dm_p_vs_ewma_qlike: 0.0962317592439883
       ewma_lambda: 0.94
-      garch_persistence: 0.9828090407814376
+      garch_persistence: 0.9827144672759196
+      garch_nu: 6.760109587620447
+      garch_nu_nobs: 6441
+      garch_gamma: 0.20332176932874713
+      garch_alpha: 0.0
+      garch_beta: 0.881053582611546
     
-
-
-```python
-
-```

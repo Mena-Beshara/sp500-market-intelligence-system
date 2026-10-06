@@ -169,18 +169,18 @@ df.info()
 ```
 
     <class 'pandas.DataFrame'>
-    DatetimeIndex: 6692 entries, 2000-01-04 to 2026-08-14
+    DatetimeIndex: 6721 entries, 2000-01-04 to 2026-09-25
     Data columns (total 6 columns):
      #   Column       Non-Null Count  Dtype  
     ---  ------       --------------  -----  
-     0   Open         6692 non-null   float64
-     1   High         6692 non-null   float64
-     2   Low          6692 non-null   float64
-     3   Close        6692 non-null   float64
-     4   Volume       6692 non-null   int64  
-     5   log_returns  6692 non-null   float64
+     0   Open         6721 non-null   float64
+     1   High         6721 non-null   float64
+     2   Low          6721 non-null   float64
+     3   Close        6721 non-null   float64
+     4   Volume       6721 non-null   int64  
+     5   log_returns  6721 non-null   float64
     dtypes: float64(5), int64(1)
-    memory usage: 366.0 KB
+    memory usage: 367.6 KB
     
 
 
@@ -234,30 +234,30 @@ df.describe()
   <tbody>
     <tr>
       <th>count</th>
-      <td>6692.000000</td>
-      <td>6692.000000</td>
-      <td>6692.000000</td>
-      <td>6692.000000</td>
-      <td>6.692000e+03</td>
-      <td>6692.000000</td>
+      <td>6721.000000</td>
+      <td>6721.000000</td>
+      <td>6721.000000</td>
+      <td>6721.000000</td>
+      <td>6.721000e+03</td>
+      <td>6721.000000</td>
     </tr>
     <tr>
       <th>mean</th>
-      <td>2381.511862</td>
-      <td>2394.992908</td>
-      <td>2367.057454</td>
-      <td>2381.918148</td>
-      <td>3.468390e+09</td>
-      <td>0.000251</td>
+      <td>2404.377908</td>
+      <td>2417.900047</td>
+      <td>2389.870876</td>
+      <td>2404.767585</td>
+      <td>3.474641e+09</td>
+      <td>0.000249</td>
     </tr>
     <tr>
       <th>std</th>
-      <td>1614.573690</td>
-      <td>1622.055625</td>
-      <td>1606.695060</td>
-      <td>1615.016584</td>
-      <td>1.533962e+09</td>
-      <td>0.012144</td>
+      <td>1648.114333</td>
+      <td>1655.544291</td>
+      <td>1640.261335</td>
+      <td>1648.493528</td>
+      <td>1.534557e+09</td>
+      <td>0.012125</td>
     </tr>
     <tr>
       <th>min</th>
@@ -270,30 +270,30 @@ df.describe()
     </tr>
     <tr>
       <th>25%</th>
-      <td>1215.365021</td>
-      <td>1222.982544</td>
-      <td>1208.927460</td>
-      <td>1215.645020</td>
-      <td>2.366590e+09</td>
-      <td>-0.004712</td>
+      <td>1216.099976</td>
+      <td>1224.469971</td>
+      <td>1209.890015</td>
+      <td>1216.130005</td>
+      <td>2.378460e+09</td>
+      <td>-0.004724</td>
     </tr>
     <tr>
       <th>50%</th>
-      <td>1582.554993</td>
-      <td>1590.854980</td>
-      <td>1577.325012</td>
-      <td>1583.929993</td>
-      <td>3.561515e+09</td>
-      <td>0.000639</td>
+      <td>1611.119995</td>
+      <td>1620.069946</td>
+      <td>1604.569946</td>
+      <td>1613.199951</td>
+      <td>3.566680e+09</td>
+      <td>0.000633</td>
     </tr>
     <tr>
       <th>75%</th>
-      <td>2996.427429</td>
-      <td>3006.067505</td>
-      <td>2978.112488</td>
-      <td>2995.714966</td>
-      <td>4.325190e+09</td>
-      <td>0.005885</td>
+      <td>3015.649902</td>
+      <td>3027.389893</td>
+      <td>2999.830078</td>
+      <td>3013.770020</td>
+      <td>4.340220e+09</td>
+      <td>0.005878</td>
     </tr>
     <tr>
       <th>max</th>
@@ -334,8 +334,8 @@ print(f'Skewness: {skewness:.4f}')
 print(f'Kurtosis: {kurtosis:.4f}')
 ```
 
-    Skewness: -0.3493
-    Kurtosis: 10.6566
+    Skewness: -0.3487
+    Kurtosis: 10.6850
     
 
 
@@ -392,8 +392,8 @@ These characteristics motivate the use of more advanced volatility and risk mode
 
 ### Results
 
-- **Skewness:** **-0.3493**
-- **Excess Kurtosis:** **10.6566**
+- **Skewness:** **-0.3487**
+- **Excess Kurtosis:** **10.6850**
 
 ### Interpretation of Skewness
 
@@ -409,7 +409,7 @@ This behaviour is common in equity markets, where panic selling and systemic sho
 
 ### Interpretation of Kurtosis
 
-The excess kurtosis value of **10.6566** is substantially above zero.
+The excess kurtosis value of **10.6850** is substantially above zero.
 
 The high kurtosis observed here indicates:
 
@@ -510,7 +510,7 @@ else:
     print("\nResult: Fail to reject H0 - The distribution appears normal.")
 ```
 
-    Jarque-Bera Statistic: 31,748.52
+    Jarque-Bera Statistic: 32,055.27
     P-Value:               0.0000
     
     Result: Reject H0 - The distribution is NOT normal (Fat Tails confirmed).
@@ -552,7 +552,7 @@ The Jarque-Bera test formally assesses whether the data has skewness and kurtosi
 
 **Results:**
 
-- **Jarque-Bera Statistic:** **31,748.52**
+- **Jarque-Bera Statistic:** **32,055.27**
 - **P-Value:** **0**
 
 **Conclusion:** We strongly reject the null hypothesis of normality.
@@ -1074,13 +1074,13 @@ lb_returns
   <tbody>
     <tr>
       <th>10</th>
-      <td>97.329282</td>
-      <td>1.863275e-16</td>
+      <td>97.310850</td>
+      <td>1.879133e-16</td>
     </tr>
     <tr>
       <th>20</th>
-      <td>162.143366</td>
-      <td>2.893678e-24</td>
+      <td>162.555588</td>
+      <td>2.408399e-24</td>
     </tr>
   </tbody>
 </table>
@@ -1164,8 +1164,8 @@ At least one lag exhibits statistically significant autocorrelation.
 
 | Lags | Ljung-Box Statistic | P-value |
 |---|---:|---:|
-| 10 | **97.33** | **1.86e-16** |
-| 20 | **162.14** | **2.89e-24** |
+| 10 | **97.31** | **1.88e-16** |
+| 20 | **162.56** | **2.41e-24** |
 
 ### Interpretation
 
@@ -1238,12 +1238,12 @@ ljung_box_squared
   <tbody>
     <tr>
       <th>10</th>
-      <td>6107.520069</td>
+      <td>6138.982229</td>
       <td>0.0</td>
     </tr>
     <tr>
       <th>20</th>
-      <td>8607.602101</td>
+      <td>8652.703995</td>
       <td>0.0</td>
     </tr>
   </tbody>
@@ -1363,8 +1363,8 @@ This implies:
 
 | Lags | Ljung-Box Statistic | P-value |
 |---|---:|---:|
-| 10 | **6107.52** | **0** |
-| 20 | **8607.60** | **0** |
+| 10 | **6138.98** | **0** |
+| 20 | **8652.70** | **0** |
 
 ### Interpretation
 
@@ -1384,8 +1384,8 @@ The Ljung-Box test on raw returns detected only modest serial dependence.
 
 In contrast, the squared-return test produced substantially larger test statistics:
 
-- Returns: **97–162**
-- Squared returns: **6108–8608**
+- Returns: **97–163**
+- Squared returns: **6139–8653**
 
 This difference highlights a central stylised fact of financial markets:
 
@@ -1420,9 +1420,9 @@ else:
     print("\nResult: Fail to reject H0 — No significant ARCH effects detected.")
 ```
 
-    LM Statistic : 1786.7044
+    LM Statistic : 1795.2779
     LM P-Value   : 0.000000
-    F Statistic  : 243.4808
+    F Statistic  : 244.6917
     F P-Value    : 0.000000
     
     Result: Reject H0 — ARCH effects present. Volatility is time-varying.
@@ -1515,9 +1515,9 @@ ARCH effects are present.
 
 ### Test Results
 
-- **LM Statistic:** **1786.70**
+- **LM Statistic:** **1795.28**
 - **LM P-Value:** **0**
-- **F Statistic:** **243.48**
+- **F Statistic:** **244.69**
 - **F P-Value:** **0**
 
 ### Interpretation
@@ -1612,7 +1612,7 @@ This notebook formally evaluated the statistical properties of S&P 500 daily log
 
 **1. Return Distribution**
 
-The log return distribution is clearly non-normal. It exhibits a skewness of **-0.3493** and an excess kurtosis of **10.6566**, confirming the presence of **fat tails**. Extreme market events occur more frequently than would be expected under Gaussian assumptions.
+The log return distribution is clearly non-normal. It exhibits a skewness of **-0.3487** and an excess kurtosis of **10.6850**, confirming the presence of **fat tails**. Extreme market events occur more frequently than would be expected under Gaussian assumptions.
 
 **2. Serial Dependence in Returns**
 
@@ -1632,7 +1632,7 @@ These findings confirm **volatility clustering**, where periods of elevated mark
 
 **4. Conditional Heteroskedasticity**
 
-Engle's ARCH LM test strongly rejected the null hypothesis of constant variance (**LM Statistic = 1786.70, p-value = 0**), providing strong evidence of **conditional heteroskedasticity**.
+Engle's ARCH LM test strongly rejected the null hypothesis of constant variance (**LM Statistic = 1795.28, p-value = 0**), providing strong evidence of **conditional heteroskedasticity**.
 
 Volatility in the S&P 500 is therefore **time-varying rather than constant**.
 
@@ -1673,11 +1673,11 @@ for k, v in metrics['notebook_02'].items():
 ```
 
     Exported notebook_02 metrics to C:\Users\Mena\Documents\Python\sp500-market-intelligence\data\locked_metrics.json
-      skewness: -0.3492648905612519
-      excess_kurtosis: 10.656592911706545
-      jarque_bera_stat: 31748.522549048226
+      skewness: -0.3486612455768164
+      excess_kurtosis: 10.684983447133812
+      jarque_bera_stat: 32055.272627444894
       jarque_bera_p: 0.0
-      arch_lm_stat: 1786.704404754513
+      arch_lm_stat: 1795.2779215227602
       arch_lm_p: 0.0
       arch_lm_nlags: 10
     

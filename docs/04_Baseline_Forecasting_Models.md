@@ -262,9 +262,9 @@ print(f'Columns: {df.shape[1]}')
 print(f'Date Range: {df.index.min()} -> {df.index.max()}')
 ```
 
-    Rows: 6,412
+    Rows: 6,441
     Columns: 64
-    Date Range: 2001-02-13 00:00:00 -> 2026-08-14 00:00:00
+    Date Range: 2001-02-13 00:00:00 -> 2026-09-25 00:00:00
     
 
 
@@ -291,7 +291,7 @@ This notebook uses the feature-engineered dataset from Notebook 03, containing
 lagged features, rolling statistics, technical indicators, calendar effects,
 and volatility regime features derived from daily log returns.
 
-Loaded 6,412 rows spanning 2001-02-13 to 2026-08-14.
+Loaded 6,441 rows spanning 2001-02-13 to 2026-09-25.
 
 A chronological train-test split is established first to simulate a realistic
 forecasting environment.
@@ -336,13 +336,13 @@ print(f'Test Period:')
 print(f'{test.index.min()} -> {test.index.max()}')
 ```
 
-    Train observations: 5,129
-    Test observations: 1,283
+    Train observations: 5,152
+    Test observations: 1,289
     
     Train Period:
-    2001-02-13 00:00:00 -> 2021-07-02 00:00:00
+    2001-02-13 00:00:00 -> 2021-08-05 00:00:00
     Test Period:
-    2021-07-06 00:00:00 -> 2026-08-14 00:00:00
+    2021-08-06 00:00:00 -> 2026-09-25 00:00:00
     
 
 
@@ -360,9 +360,9 @@ test observations ({test.index.min().date()} to {test.index.max().date()}).
 
 ## Train-test split
 
-An 80/20 chronological split produces 5,129 training observations
-(2001-02-13 to 2021-07-02) and 1,283
-test observations (2021-07-06 to 2026-08-14).
+An 80/20 chronological split produces 5,152 training observations
+(2001-02-13 to 2021-08-05) and 1,289
+test observations (2021-08-06 to 2026-09-25).
 
 
 
@@ -470,23 +470,23 @@ benchmark_results.sort_values('RMSE')
     <tr>
       <th>0</th>
       <td>Historical Mean</td>
-      <td>0.007573</td>
-      <td>0.010642</td>
-      <td>0.537023</td>
+      <td>0.007554</td>
+      <td>0.010616</td>
+      <td>0.533747</td>
     </tr>
     <tr>
       <th>2</th>
       <td>Zero Return</td>
-      <td>0.007586</td>
-      <td>0.010649</td>
+      <td>0.007566</td>
+      <td>0.010622</td>
       <td>0.000000</td>
     </tr>
     <tr>
       <th>1</th>
       <td>Naive Momentum</td>
-      <td>0.010987</td>
-      <td>0.015177</td>
-      <td>0.500390</td>
+      <td>0.010942</td>
+      <td>0.015132</td>
+      <td>0.501939</td>
     </tr>
   </tbody>
 </table>
@@ -539,9 +539,9 @@ approaches may be hard to beat.
 ## Benchmark model results
 
 Three benchmarks are established before fitting statistical models: the
-historical mean forecast (RMSE = 0.010642), a naive momentum
-forecast using `return_lag_1` (RMSE = 0.015177), and a zero-return
-forecast (RMSE = 0.010649).
+historical mean forecast (RMSE = 0.010616), a naive momentum
+forecast using `return_lag_1` (RMSE = 0.015132), and a zero-return
+forecast (RMSE = 0.010622).
 
 Given the weak autocorrelation found during diagnostics, these simple
 approaches may be hard to beat.
@@ -593,25 +593,25 @@ print(arima_fit.summary())
 
                                    SARIMAX Results                                
     ==============================================================================
-    Dep. Variable:            log_returns   No. Observations:                 5129
-    Model:                 ARIMA(1, 0, 1)   Log Likelihood               15282.048
-    Date:                Mon, 17 Aug 2026   AIC                         -30556.095
-    Time:                        23:24:28   BIC                         -30529.924
-    Sample:                             0   HQIC                        -30546.935
-                                   - 5129                                         
+    Dep. Variable:            log_returns   No. Observations:                 5152
+    Model:                 ARIMA(1, 0, 1)   Log Likelihood               15358.324
+    Date:                Tue, 29 Sep 2026   AIC                         -30708.647
+    Time:                        16:31:31   BIC                         -30682.458
+    Sample:                             0   HQIC                        -30699.482
+                                   - 5152                                         
     Covariance Type:                  opg                                         
     ==============================================================================
                      coef    std err          z      P>|z|      [0.025      0.975]
     ------------------------------------------------------------------------------
-    const          0.0002      0.000      1.423      0.155    -8.7e-05       0.001
-    ar.L1         -0.0521      0.045     -1.157      0.247      -0.140       0.036
-    ma.L1         -0.0680      0.046     -1.474      0.140      -0.158       0.022
-    sigma2         0.0002   1.23e-06    123.094      0.000       0.000       0.000
+    const          0.0002      0.000      1.443      0.149   -8.34e-05       0.001
+    ar.L1         -0.0509      0.045     -1.135      0.256      -0.139       0.037
+    ma.L1         -0.0692      0.046     -1.507      0.132      -0.159       0.021
+    sigma2         0.0002   1.22e-06    123.489      0.000       0.000       0.000
     ===================================================================================
-    Ljung-Box (L1) (Q):                   0.00   Jarque-Bera (JB):             26600.03
+    Ljung-Box (L1) (Q):                   0.00   Jarque-Bera (JB):             26829.69
     Prob(Q):                              1.00   Prob(JB):                         0.00
-    Heteroskedasticity (H):               1.13   Skew:                            -0.58
-    Prob(H) (two-sided):                  0.01   Kurtosis:                        14.10
+    Heteroskedasticity (H):               1.12   Skew:                            -0.58
+    Prob(H) (two-sided):                  0.02   Kurtosis:                        14.12
     ===================================================================================
     
     Warnings:
@@ -669,9 +669,9 @@ arima_results
     <tr>
       <th>0</th>
       <td>ARIMA Static</td>
-      <td>0.007572</td>
-      <td>0.010641</td>
-      <td>0.537802</td>
+      <td>0.007554</td>
+      <td>0.010616</td>
+      <td>0.532971</td>
     </tr>
   </tbody>
 </table>
@@ -720,32 +720,32 @@ results.sort_values('RMSE')
   </thead>
   <tbody>
     <tr>
-      <th>3</th>
-      <td>ARIMA Static</td>
-      <td>0.007572</td>
-      <td>0.010641</td>
-      <td>0.537802</td>
-    </tr>
-    <tr>
       <th>0</th>
       <td>Historical Mean</td>
-      <td>0.007573</td>
-      <td>0.010642</td>
-      <td>0.537023</td>
+      <td>0.007554</td>
+      <td>0.010616</td>
+      <td>0.533747</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>ARIMA Static</td>
+      <td>0.007554</td>
+      <td>0.010616</td>
+      <td>0.532971</td>
     </tr>
     <tr>
       <th>2</th>
       <td>Zero Return</td>
-      <td>0.007586</td>
-      <td>0.010649</td>
+      <td>0.007566</td>
+      <td>0.010622</td>
       <td>0.000000</td>
     </tr>
     <tr>
       <th>1</th>
       <td>Naive Momentum</td>
-      <td>0.010987</td>
-      <td>0.015177</td>
-      <td>0.500390</td>
+      <td>0.010942</td>
+      <td>0.015132</td>
+      <td>0.501939</td>
     </tr>
   </tbody>
 </table>
@@ -799,11 +799,11 @@ print(f'Nominal leader      : {rmse_leader}')
 print(f'Effective tie       : {rmse_effective_tie}')
 ```
 
-    ARIMA RMSE          : 0.010641499
-    Historical mean RMSE: 0.010641615
-    Absolute margin     : +1.17e-07 (lower is better)
-    Relative margin     : 1.10e-05 (one part in 91,286)
-    Nominal leader      : ARIMA(1,0,1)
+    ARIMA RMSE          : 0.010615607
+    Historical mean RMSE: 0.010615505
+    Absolute margin     : -1.02e-07 (lower is better)
+    Relative margin     : 9.59e-06 (one part in 104,283)
+    Nominal leader      : the historical mean
     Effective tie       : True
     
 
@@ -841,18 +841,18 @@ baseline to justify the added complexity.
 
 ## Initial ARIMA results
 
-ARIMA(1,0,1) produced an RMSE of 0.010641, against
-0.010642 for the historical mean forecast.
+ARIMA(1,0,1) produced an RMSE of 0.010616, against
+0.010616 for the historical mean forecast.
 
 | Model | RMSE |
 |---|---|
-| ARIMA Static | 0.010641 |
-| Historical Mean | 0.010642 |
-| Zero Return | 0.010649 |
-| Naive Momentum | 0.015177 |
+| ARIMA Static | 0.010616 |
+| Historical Mean | 0.010616 |
+| Zero Return | 0.010622 |
+| Naive Momentum | 0.015132 |
 
-ARIMA(1,0,1) holds the lower figure, by 1.10e-05 in relative
-terms — one part in 91,286 of the value itself.
+the historical mean holds the lower figure, by 9.59e-06 in relative
+terms — one part in 104,283 of the value itself.
 A margin that small is not a performance difference. It is the two models producing the same forecast to within the precision this evaluation supports, which is what a constant-mean ARIMA does when the autoregressive structure it fits is not significant.
 
 This matches the diagnostics from Notebook 02. Daily log returns are
@@ -968,39 +968,39 @@ results.sort_values('RMSE')
   </thead>
   <tbody>
     <tr>
-      <th>3</th>
-      <td>ARIMA Static</td>
-      <td>0.007572</td>
-      <td>0.010641</td>
-      <td>0.537802</td>
-    </tr>
-    <tr>
       <th>0</th>
       <td>Historical Mean</td>
-      <td>0.007573</td>
-      <td>0.010642</td>
-      <td>0.537023</td>
+      <td>0.007554</td>
+      <td>0.010616</td>
+      <td>0.533747</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>ARIMA Static</td>
+      <td>0.007554</td>
+      <td>0.010616</td>
+      <td>0.532971</td>
     </tr>
     <tr>
       <th>2</th>
       <td>Zero Return</td>
-      <td>0.007586</td>
-      <td>0.010649</td>
+      <td>0.007566</td>
+      <td>0.010622</td>
       <td>0.000000</td>
     </tr>
     <tr>
       <th>4</th>
       <td>ARIMA Walk-Forward</td>
-      <td>0.007663</td>
-      <td>0.010690</td>
-      <td>0.507405</td>
+      <td>0.007644</td>
+      <td>0.010665</td>
+      <td>0.506594</td>
     </tr>
     <tr>
       <th>1</th>
       <td>Naive Momentum</td>
-      <td>0.010987</td>
-      <td>0.015177</td>
-      <td>0.500390</td>
+      <td>0.010942</td>
+      <td>0.015132</td>
+      <td>0.501939</td>
     </tr>
   </tbody>
 </table>
@@ -1031,11 +1031,11 @@ not direction.
 
 ## ARIMA evaluation
 
-ARIMA(1,0,1) was evaluated with both a static forecast (RMSE = 0.010641,
-directional accuracy = 53.78%) and an expanding-window
-walk-forward setup (RMSE = 0.010690, directional accuracy =
-50.74%). Neither approach beat the historical mean
-(RMSE = 0.010642).
+ARIMA(1,0,1) was evaluated with both a static forecast (RMSE = 0.010616,
+directional accuracy = 53.30%) and an expanding-window
+walk-forward setup (RMSE = 0.010665, directional accuracy =
+50.66%). Neither approach beat the historical mean
+(RMSE = 0.010616).
 
 This is consistent with the diagnostics: weak autocorrelation in daily log
 returns, non-significant AR and MA coefficients, and limited evidence of
@@ -1114,13 +1114,13 @@ acorr_ljungbox(
   <tbody>
     <tr>
       <th>10</th>
-      <td>29.076686</td>
-      <td>1.210916e-03</td>
+      <td>29.602994</td>
+      <td>9.945032e-04</td>
     </tr>
     <tr>
       <th>20</th>
-      <td>90.675256</td>
-      <td>5.647005e-11</td>
+      <td>91.529810</td>
+      <td>3.999231e-11</td>
     </tr>
   </tbody>
 </table>
@@ -1136,7 +1136,7 @@ jarque_bera(residuals)
 
 
 
-    SignificanceResult(statistic=np.float64(26599.82957069832), pvalue=np.float64(0.0))
+    SignificanceResult(statistic=np.float64(26829.48284507363), pvalue=np.float64(0.0))
 
 
 
@@ -1180,13 +1180,13 @@ concentrated in volatility, not direction.
 Most residual autocorrelations fall within the confidence bounds, though
 several isolated lags remain significant.
 
-The Ljung-Box test rejects independence at lag 10 (Q = 29.08,
-p = 0.0012) and lag 20
-(Q = 90.68, p < 0.001).
+The Ljung-Box test rejects independence at lag 10 (Q = 29.60,
+p < 0.001) and lag 20
+(Q = 91.53, p < 0.001).
 The statistic strengthening at longer lags points to volatility clustering
 rather than a short-term autoregressive artefact.
 
-The Jarque-Bera test rejects normality (statistic = 26,599.83,
+The Jarque-Bera test rejects normality (statistic = 26,829.48,
 p ≈ 0), confirming fat
 tails persist after fitting ARIMA(1,0,1). The model removes part of the linear
 dependence in returns but doesn't fully whiten the residuals — what's left is
@@ -1249,26 +1249,26 @@ print(sarima_fit.summary())
 
                                          SARIMAX Results                                     
     =========================================================================================
-    Dep. Variable:                       log_returns   No. Observations:                 5129
-    Model:             SARIMAX(1, 0, 1)x(1, 0, 1, 5)   Log Likelihood               15262.243
-    Date:                           Mon, 17 Aug 2026   AIC                         -30514.486
-    Time:                                   23:41:33   BIC                         -30481.780
-    Sample:                                        0   HQIC                        -30503.037
-                                              - 5129                                         
+    Dep. Variable:                       log_returns   No. Observations:                 5152
+    Model:             SARIMAX(1, 0, 1)x(1, 0, 1, 5)   Log Likelihood               15338.543
+    Date:                           Tue, 29 Sep 2026   AIC                         -30667.086
+    Time:                                   16:44:39   BIC                         -30634.357
+    Sample:                                        0   HQIC                        -30655.632
+                                              - 5152                                         
     Covariance Type:                             opg                                         
     ==============================================================================
                      coef    std err          z      P>|z|      [0.025      0.975]
     ------------------------------------------------------------------------------
-    ar.L1         -0.0548      0.046     -1.196      0.232      -0.145       0.035
-    ma.L1         -0.0648      0.047     -1.390      0.165      -0.156       0.027
-    ar.S.L5        0.1930      0.239      0.808      0.419      -0.275       0.661
-    ma.S.L5       -0.2126      0.238     -0.895      0.371      -0.678       0.253
-    sigma2         0.0002   1.21e-06    125.329      0.000       0.000       0.000
+    ar.L1         -0.0537      0.046     -1.175      0.240      -0.143       0.036
+    ma.L1         -0.0659      0.046     -1.419      0.156      -0.157       0.025
+    ar.S.L5        0.1908      0.236      0.809      0.418      -0.271       0.653
+    ma.S.L5       -0.2107      0.235     -0.898      0.369      -0.670       0.249
+    sigma2         0.0002    1.2e-06    125.729      0.000       0.000       0.000
     ===================================================================================
-    Ljung-Box (L1) (Q):                   0.04   Jarque-Bera (JB):             27113.80
-    Prob(Q):                              0.85   Prob(JB):                         0.00
-    Heteroskedasticity (H):               1.14   Skew:                            -0.61
-    Prob(H) (two-sided):                  0.01   Kurtosis:                        14.20
+    Ljung-Box (L1) (Q):                   0.04   Jarque-Bera (JB):             27358.92
+    Prob(Q):                              0.84   Prob(JB):                         0.00
+    Heteroskedasticity (H):               1.13   Skew:                            -0.61
+    Prob(H) (two-sided):                  0.01   Kurtosis:                        14.23
     ===================================================================================
     
     Warnings:
@@ -1331,44 +1331,44 @@ results
     <tr>
       <th>0</th>
       <td>Historical Mean</td>
-      <td>0.007573</td>
-      <td>0.010642</td>
-      <td>0.537023</td>
+      <td>0.007554</td>
+      <td>0.010616</td>
+      <td>0.533747</td>
     </tr>
     <tr>
       <th>1</th>
       <td>Naive Momentum</td>
-      <td>0.010987</td>
-      <td>0.015177</td>
-      <td>0.500390</td>
+      <td>0.010942</td>
+      <td>0.015132</td>
+      <td>0.501939</td>
     </tr>
     <tr>
       <th>2</th>
       <td>Zero Return</td>
-      <td>0.007586</td>
-      <td>0.010649</td>
+      <td>0.007566</td>
+      <td>0.010622</td>
       <td>0.000000</td>
     </tr>
     <tr>
       <th>3</th>
       <td>ARIMA Static</td>
-      <td>0.007572</td>
-      <td>0.010641</td>
-      <td>0.537802</td>
+      <td>0.007554</td>
+      <td>0.010616</td>
+      <td>0.532971</td>
     </tr>
     <tr>
       <th>4</th>
       <td>ARIMA Walk-Forward</td>
-      <td>0.007663</td>
-      <td>0.010690</td>
-      <td>0.507405</td>
+      <td>0.007644</td>
+      <td>0.010665</td>
+      <td>0.506594</td>
     </tr>
     <tr>
       <th>5</th>
       <td>SARIMA(1,0,1)(1,0,1,5)</td>
-      <td>0.007586</td>
-      <td>0.010649</td>
-      <td>0.463757</td>
+      <td>0.007567</td>
+      <td>0.010623</td>
+      <td>0.519783</td>
     </tr>
   </tbody>
 </table>
@@ -1448,9 +1448,9 @@ ARIMA term.
 """))
 ```
 
-    SARIMA directional accuracy: 46.38%
-    Standard error under H0    : 0.0140
-    z vs 50%                   : -2.60
+    SARIMA directional accuracy: 51.98%
+    Standard error under H0    : 0.0139
+    z vs 50%                   : +1.42
     
 
 
@@ -1459,9 +1459,9 @@ ARIMA term.
 
 SARIMA(1,0,1)(1,0,1,5) tested whether weekly seasonality (5 trading days)
 improves forecasting performance. The seasonal AR(5) coefficient came in at
-p = 0.419 and the seasonal MA(5) coefficient at
-p = 0.371, both non-significant. AIC rose from
--30,556.10 (ARIMA) to -30,514.49 (SARIMA) — a worse fit despite
+p = 0.418 and the seasonal MA(5) coefficient at
+p = 0.369, both non-significant. AIC rose from
+-30,708.65 (ARIMA) to -30,667.09 (SARIMA) — a worse fit despite
 the added parameters.
 
 Notebook 02 found some calendar effects, including stronger average returns
@@ -1471,17 +1471,17 @@ relative to overall noise in daily log returns.
 
 ### On the directional accuracy
 
-SARIMA called direction correctly on 46.38% of test days,
-below the 50% a coin flip would give.
-Across 1,283 test observations the standard error of that proportion
-under a no-skill null is 0.0140, placing the observed figure
-2.6 standard errors below
-50% (z = -2.60).
+SARIMA called direction correctly on 51.98% of test days,
+above the 50% a coin flip would give.
+Across 1,289 test observations the standard error of that proportion
+under a no-skill null is 0.0139, placing the observed figure
+1.4 standard errors above
+50% (z = +1.42).
 
-That is nominally significant, and it is worth being explicit about what it is not. Directional accuracy is a secondary statistic here: RMSE and AIC are the selection criteria, and on both this specification lost. It is one figure among several inspected across seven models, with no correction for multiple comparisons applied, and it comes from a model whose seasonal coefficients were themselves non-significant. A sub-coin-flip hit rate produced by a specification that fits no real structure is the sign of a forecast whose direction is arbitrary, not a tradable inverse signal. Treating it as one would mean betting against a coefficient the data says is indistinguishable from zero.
+That is within sampling error of a coin flip, consistent with a specification that fits no real directional structure.
 
-RMSE reinforces the reading: at 0.010649 against
-0.010642 for the historical mean, the model shows no magnitude
+RMSE reinforces the reading: at 0.010623 against
+0.010616 for the historical mean, the model shows no magnitude
 edge to accompany the sign pattern. RMSE is driven by the size of errors
 rather than their direction, so the two statistics can disagree without either
 being wrong.
@@ -1573,14 +1573,14 @@ prophet_model = Prophet(
 prophet_model.fit(prophet_train)
 ```
 
-    23:41:34 - cmdstanpy - INFO - Chain [1] start processing
-    23:41:34 - cmdstanpy - INFO - Chain [1] done processing
+    16:44:40 - cmdstanpy - INFO - Chain [1] start processing
+    16:44:41 - cmdstanpy - INFO - Chain [1] done processing
     
 
 
 
 
-    <prophet.forecaster.Prophet at 0x1f752669250>
+    <prophet.forecaster.Prophet at 0x25a50ec97d0>
 
 
 
@@ -1651,9 +1651,9 @@ prophet_results
     <tr>
       <th>0</th>
       <td>Prophet</td>
-      <td>0.007612</td>
-      <td>0.010694</td>
-      <td>0.522993</td>
+      <td>0.007591</td>
+      <td>0.010665</td>
+      <td>0.522886</td>
     </tr>
   </tbody>
 </table>
@@ -1701,53 +1701,53 @@ results.sort_values('RMSE')
   </thead>
   <tbody>
     <tr>
-      <th>3</th>
-      <td>ARIMA Static</td>
-      <td>0.007572</td>
-      <td>0.010641</td>
-      <td>0.537802</td>
-    </tr>
-    <tr>
       <th>0</th>
       <td>Historical Mean</td>
-      <td>0.007573</td>
-      <td>0.010642</td>
-      <td>0.537023</td>
+      <td>0.007554</td>
+      <td>0.010616</td>
+      <td>0.533747</td>
     </tr>
     <tr>
-      <th>5</th>
-      <td>SARIMA(1,0,1)(1,0,1,5)</td>
-      <td>0.007586</td>
-      <td>0.010649</td>
-      <td>0.463757</td>
+      <th>3</th>
+      <td>ARIMA Static</td>
+      <td>0.007554</td>
+      <td>0.010616</td>
+      <td>0.532971</td>
     </tr>
     <tr>
       <th>2</th>
       <td>Zero Return</td>
-      <td>0.007586</td>
-      <td>0.010649</td>
+      <td>0.007566</td>
+      <td>0.010622</td>
       <td>0.000000</td>
     </tr>
     <tr>
-      <th>4</th>
-      <td>ARIMA Walk-Forward</td>
-      <td>0.007663</td>
-      <td>0.010690</td>
-      <td>0.507405</td>
+      <th>5</th>
+      <td>SARIMA(1,0,1)(1,0,1,5)</td>
+      <td>0.007567</td>
+      <td>0.010623</td>
+      <td>0.519783</td>
     </tr>
     <tr>
       <th>6</th>
       <td>Prophet</td>
-      <td>0.007612</td>
-      <td>0.010694</td>
-      <td>0.522993</td>
+      <td>0.007591</td>
+      <td>0.010665</td>
+      <td>0.522886</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>ARIMA Walk-Forward</td>
+      <td>0.007644</td>
+      <td>0.010665</td>
+      <td>0.506594</td>
     </tr>
     <tr>
       <th>1</th>
       <td>Naive Momentum</td>
-      <td>0.010987</td>
-      <td>0.015177</td>
-      <td>0.500390</td>
+      <td>0.010942</td>
+      <td>0.015132</td>
+      <td>0.501939</td>
     </tr>
   </tbody>
 </table>
@@ -1785,9 +1785,9 @@ and short-lived shocks, leaving little of that structure for it to find.
 ## Prophet evaluation
 
 Prophet was included as a benchmark given its common use for trend and
-seasonality forecasting. RMSE came in at 0.010694, MAE at
-0.007612, and directional accuracy at 52.30% — none
-of which improved on the historical mean (RMSE = 0.010642).
+seasonality forecasting. RMSE came in at 0.010665, MAE at
+0.007591, and directional accuracy at 52.29% — none
+of which improved on the historical mean (RMSE = 0.010616).
 
 This matches the return characteristics from Notebook 02. Unlike business
 metrics such as revenue or web traffic, daily returns carry little persistent
@@ -1855,34 +1855,34 @@ benchmarks for daily S&P 500 log returns.
 
 | Model                  |        MAE |      RMSE |   Directional Accuracy |
 |:-----------------------|-----------:|----------:|-----------------------:|
-| ARIMA Static           | 0.00757195 | 0.0106415 |               0.537802 |
-| Historical Mean        | 0.00757267 | 0.0106416 |               0.537023 |
-| SARIMA(1,0,1)(1,0,1,5) | 0.00758564 | 0.0106489 |               0.463757 |
-| Zero Return            | 0.00758631 | 0.0106489 |               0        |
-| ARIMA Walk-Forward     | 0.00766289 | 0.0106905 |               0.507405 |
-| Prophet                | 0.00761161 | 0.0106939 |               0.522993 |
-| Naive Momentum         | 0.0109871  | 0.0151765 |               0.50039  |
+| Historical Mean        | 0.0075536  | 0.0106155 |               0.533747 |
+| ARIMA Static           | 0.00755416 | 0.0106156 |               0.532971 |
+| Zero Return            | 0.00756583 | 0.0106225 |               0        |
+| SARIMA(1,0,1)(1,0,1,5) | 0.00756651 | 0.0106226 |               0.519783 |
+| Prophet                | 0.00759134 | 0.0106647 |               0.522886 |
+| ARIMA Walk-Forward     | 0.00764368 | 0.0106653 |               0.506594 |
+| Naive Momentum         | 0.0109425  | 0.0151322 |               0.501939 |
 
 No classical model meaningfully outperformed the historical mean benchmark
-(RMSE = 0.010642). ARIMA Static sits at the top of the table with
-RMSE 0.010641, ahead of Historical Mean by 1.10e-05 in relative
+(RMSE = 0.010616). Historical Mean sits at the top of the table with
+RMSE 0.010616, ahead of ARIMA Static by 9.59e-06 in relative
 terms.
 Reading that ordering as a result would be a mistake: the gap is far below the precision a single 252-day-scale test window on a noisy target can resolve, so the table records which model happened to land marginally lower rather than which forecasts better.
 The finding of this notebook is the absence of a margin, not the identity of
 the nominal leader.
 
 ARIMA(1,0,1) captured only limited linear structure. SARIMA's weekly seasonal
-coefficients were non-significant (p = 0.419 and
-p = 0.371) and the seasonal term didn't improve fit
-(AIC -30,514.49 vs -30,556.10); its directional accuracy of
-46.38% is discussed in that section. Prophet found no useful
+coefficients were non-significant (p = 0.418 and
+p = 0.369) and the seasonal term didn't improve fit
+(AIC -30,667.09 vs -30,708.65); its directional accuracy of
+51.98% is discussed in that section. Prophet found no useful
 trend or seasonal signal beyond what the simpler benchmarks already captured.
 The historical mean held up against all of them.
 
 Residual diagnostics reinforced the same picture: Ljung-Box rejected
-independence at lag 10 (Q = 29.08) and lag 20 (Q = 90.68),
+independence at lag 10 (Q = 29.60) and lag 20 (Q = 91.53),
 strengthening at longer lags. Jarque-Bera rejected normality
-(statistic = 26,599.83), confirming fat tails survive the fit. The ACF
+(statistic = 26,829.48), confirming fat tails survive the fit. The ACF
 of squared residuals decayed gradually across 40 lags — volatility
 clustering, not noise.
 
@@ -1916,6 +1916,6 @@ for k, v in metrics['notebook_04'].items():
 
     Exported notebook_04 metrics to C:\Users\Mena\Documents\Python\sp500-market-intelligence\data\locked_metrics.json
       arima_order: 1,0,1
-      arima_rmse: 0.010641498724367367
-      historical_mean_rmse: 0.01064161529907483
+      arima_rmse: 0.010615606617989135
+      historical_mean_rmse: 0.010615504822376973
     

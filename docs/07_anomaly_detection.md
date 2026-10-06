@@ -32,6 +32,7 @@ from pathlib import Path
 
 from arch import arch_model
 from scipy.stats import t as t_dist
+from scipy.stats import binomtest
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -54,8 +55,8 @@ print(f'Rows:  {len(df):,}')
 print(f'Range: {df.index.min().date()} to {df.index.max().date()}')
 ```
 
-    Rows:  6,692
-    Range: 2000-01-04 to 2026-08-14
+    Rows:  6,721
+    Range: 2000-01-04 to 2026-09-25
     
 
 ## 3. Where this fits
@@ -97,7 +98,7 @@ print(res.summary().tables[1])
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
     ----------------------------------------------------------------------------
-    mu             0.0508  9.006e-03      5.643  1.672e-08 [3.317e-02,6.847e-02]
+    mu             0.0500  8.997e-03      5.552  2.820e-08 [3.232e-02,6.759e-02]
     ============================================================================
     
 
@@ -114,20 +115,29 @@ print(f'Standardised residuals: {len(std_resids):,} observations')
 print(f'Mean: {std_resids.mean():.4f}, Std: {std_resids.std():.4f}')
 ```
 
-    Degrees of freedom (nu): 6.88
-    Standardised residuals: 6,692 observations
-    Mean: -0.0380, Std: 1.0016
+    Degrees of freedom (nu): 6.94
+    Standardised residuals: 6,721 observations
+    Mean: -0.0373, Std: 1.0018
     
 
 ## 5. Anomaly threshold
 
 
 ```python
-# Under the model, standardised residuals follow Student's t(nu).
-# The anomaly threshold is the 99th percentile of the absolute value
-# of this distribution (two-tailed 1% significance).
-threshold_99 = t_dist.ppf(0.995, df=nu)
-threshold_95 = t_dist.ppf(0.975, df=nu)
+# The threshold uses the production distributional parameter from NB05, not
+# this notebook's refit. NB05 selects the production model; the refit above
+# exists only to produce residuals across the full history.
+nb05 = metrics['notebook_05']
+nu_production = nb05['garch_nu']
+nu_production_nobs = nb05['garch_nu_nobs']
+
+# arch standardises residuals to unit variance. The cutoff must therefore come
+# from the standardised Student's t, whose quantiles are the raw t quantiles
+# scaled by sqrt((nu - 2) / nu). This is the same scaling NB05 already applies
+# when it builds its QQ plot.
+t_scale = np.sqrt((nu_production - 2) / nu_production)
+threshold_99 = t_dist.ppf(0.995, df=nu_production) * t_scale
+threshold_95 = t_dist.ppf(0.975, df=nu_production) * t_scale
 
 # Flag anomalies
 z_abs = np.abs(std_resids)
@@ -142,15 +152,29 @@ n_total = len(std_resids)
 expected_99 = n_total * 0.01
 expected_95 = n_total * 0.05
 
+cov_99 = binomtest(int(n_99), n_total, 0.01, alternative='two-sided')
+cov_95 = binomtest(int(n_95), n_total, 0.05, alternative='two-sided')
+
 display(Markdown(f"""
 ### Threshold calibration
 
-| Level | Threshold |z| | Expected | Observed | Ratio |
-|---|---|---|---|---|
-| 5% (warning) | {threshold_95:.3f} | {expected_95:.0f} | {n_95} | {n_95/expected_95:.2f}× |
-| 1% (anomaly) | {threshold_99:.3f} | {expected_99:.0f} | {n_99} | {n_99/expected_99:.2f}× |
+| Level | Threshold | Expected | Observed | Ratio | Coverage p |
+|---|---|---|---|---|---|
+| 5% (warning) | {threshold_95:.3f} | {expected_95:.0f} | {n_95} | {n_95/expected_95:.2f}× | {cov_95.pvalue:.4f} |
+| 1% (anomaly) | {threshold_99:.3f} | {expected_99:.0f} | {n_99} | {n_99/expected_99:.2f}× | {cov_99.pvalue:.4f} |
 
-{'The observed anomaly count exceeds the expected count, indicating heavier tails than the fitted Student t captures, or transient model misspecification during extreme events. This is expected in financial data and makes the anomaly flags conservative: the threshold is calibrated to the fitted distribution, so any excess flags represent genuinely surprising observations.' if n_99 > expected_99 * 1.2 else 'The observed count is close to the expected count, indicating the model is well-calibrated for tail events.'}
+Thresholds apply to the absolute standardised residual. They use nu =
+{nu_production:.4f} from the NB05 production fit ({nu_production_nobs:,}
+observations), scaled by sqrt((nu - 2) / nu) because arch standardises
+residuals to unit variance.
+
+Coverage is tested with an exact two-sided binomial test of observed flags
+against the nominal rate.
+{
+'Neither level rejects correct coverage at the 5% significance level, so the flag rates are consistent with the fitted Student t.'
+if cov_99.pvalue > 0.05 and cov_95.pvalue > 0.05 else
+f'Coverage is rejected at one or both levels (1%: p = {cov_99.pvalue:.4f}, 5%: p = {cov_95.pvalue:.4f}). The observed 1% ratio of {n_99/expected_99:.2f}× indicates the threshold is flagging too {"many" if n_99 > expected_99 else "few"} days, so either the threshold or the innovation assumption needs review before this feeds the risk report.'
+}
 
 The 1% threshold is used as the primary anomaly flag for the Daily Market
 Risk Report. The 5% threshold is available as a warning level.
@@ -161,12 +185,19 @@ Risk Report. The 5% threshold is available as a warning level.
 
 ### Threshold calibration
 
-| Level | Threshold |z| | Expected | Observed | Ratio |
-|---|---|---|---|---|
-| 5% (warning) | 2.373 | 335 | 169 | 0.51× |
-| 1% (anomaly) | 3.520 | 67 | 25 | 0.37× |
+| Level | Threshold | Expected | Observed | Ratio | Coverage p |
+|---|---|---|---|---|---|
+| 5% (warning) | 1.999 | 336 | 327 | 0.97× | 0.6343 |
+| 1% (anomaly) | 2.972 | 67 | 56 | 0.83× | 0.1776 |
 
-The observed count is close to the expected count, indicating the model is well-calibrated for tail events.
+Thresholds apply to the absolute standardised residual. They use nu =
+6.7601 from the NB05 production fit (6,441
+observations), scaled by sqrt((nu - 2) / nu) because arch standardises
+residuals to unit variance.
+
+Coverage is tested with an exact two-sided binomial test of observed flags
+against the nominal rate.
+Neither level rejects correct coverage at the 5% significance level, so the flag rates are consistent with the fitted Student t.
 
 The 1% threshold is used as the primary anomaly flag for the Daily Market
 Risk Report. The 5% threshold is available as a warning level.
@@ -268,7 +299,7 @@ print(f'Positive anomalies: {pos_anomalies} ({pos_anomalies/n_99*100:.0f}%)')
     <tr>
       <th>2020-09-03</th>
       <td>-3.58%</td>
-      <td>7.45</td>
+      <td>7.44</td>
       <td>7.7%</td>
     </tr>
     <tr>
@@ -310,7 +341,7 @@ print(f'Positive anomalies: {pos_anomalies} ({pos_anomalies/n_99*100:.0f}%)')
     <tr>
       <th>2024-12-18</th>
       <td>-2.99%</td>
-      <td>5.04</td>
+      <td>5.05</td>
       <td>9.6%</td>
     </tr>
     <tr>
@@ -334,7 +365,7 @@ print(f'Positive anomalies: {pos_anomalies} ({pos_anomalies/n_99*100:.0f}%)')
     <tr>
       <th>2020-02-24</th>
       <td>-3.41%</td>
-      <td>4.18</td>
+      <td>4.19</td>
       <td>13.1%</td>
     </tr>
     <tr>
@@ -352,7 +383,7 @@ print(f'Positive anomalies: {pos_anomalies} ({pos_anomalies/n_99*100:.0f}%)')
     <tr>
       <th>2000-04-14</th>
       <td>-6.0%</td>
-      <td>3.93</td>
+      <td>3.94</td>
       <td>24.4%</td>
     </tr>
     <tr>
@@ -382,7 +413,7 @@ print(f'Positive anomalies: {pos_anomalies} ({pos_anomalies/n_99*100:.0f}%)')
     <tr>
       <th>2019-03-22</th>
       <td>-1.92%</td>
-      <td>3.69</td>
+      <td>3.68</td>
       <td>8.5%</td>
     </tr>
   </tbody>
@@ -391,32 +422,47 @@ print(f'Positive anomalies: {pos_anomalies} ({pos_anomalies/n_99*100:.0f}%)')
 
 
     
-    Negative anomalies: 25 (100%)
-    Positive anomalies: 0 (0%)
+    Negative anomalies: 49 (88%)
+    Positive anomalies: 7 (12%)
     
 
 
 ```python
-display(Markdown(f"""
-{'Negative anomalies outnumber positive anomalies, consistent with the leverage effect documented in Notebook 05 (GJR gamma = 0.2027): downward shocks produce larger standardised residuals because the model expects less variance before negative surprises than after them.' if neg_anomalies > pos_anomalies else 'Positive and negative anomalies occur at similar rates, suggesting the GJR asymmetry term adequately captures the leverage effect in the conditional variance.'}
+gjr_gamma = metrics['notebook_05']['garch_gamma']
+gjr_alpha = metrics['notebook_05']['garch_alpha']
 
-The 20 largest anomalies cluster around known market events. Dates in
-2008-2009, early 2020, and mid-2022 should dominate the list. Dates
-that do not correspond to identifiable events are the most interesting
-from a risk management perspective: these are genuine surprises the
-model could not have anticipated.
+if neg_anomalies > pos_anomalies:
+    leverage_line = (
+        f"Negative flags outnumber positive ones ({neg_anomalies} against "
+        f"{pos_anomalies}), consistent with the asymmetry NB05 fitted "
+        f"(gamma = {gjr_gamma:.4f}, with the symmetric ARCH term alpha = "
+        f"{gjr_alpha:.4f}): the model expects less variance before negative "
+        f"surprises than after them, so downward shocks produce larger "
+        f"standardised residuals."
+    )
+else:
+    leverage_line = (
+        f"Positive and negative flags occur at similar rates. The fitted GJR "
+        f"asymmetry (gamma = {gjr_gamma:.4f}) captures the leverage effect in "
+        f"the conditional variance rather than leaving it in the residuals."
+    )
+
+display(Markdown(f"""
+{leverage_line}
+
+The largest flags are examined against known events in the next section.
+Section 8 tests whether they concentrate in crisis windows; the answer shapes
+how the flag should be read.
 """))
 ```
 
 
 
-Negative anomalies outnumber positive anomalies, consistent with the leverage effect documented in Notebook 05 (GJR gamma = 0.2027): downward shocks produce larger standardised residuals because the model expects less variance before negative surprises than after them.
+Negative flags outnumber positive ones (49 against 7), consistent with the asymmetry NB05 fitted (gamma = 0.2033, with the symmetric ARCH term alpha = 0.0000): the model expects less variance before negative surprises than after them, so downward shocks produce larger standardised residuals.
 
-The 20 largest anomalies cluster around known market events. Dates in
-2008-2009, early 2020, and mid-2022 should dominate the list. Dates
-that do not correspond to identifiable events are the most interesting
-from a risk management perspective: these are genuine surprises the
-model could not have anticipated.
+The largest flags are examined against known events in the next section.
+Section 8 tests whether they concentrate in crisis windows; the answer shapes
+how the flag should be read.
 
 
 
@@ -459,36 +505,73 @@ display(val_df.to_string(index=False))
 ```
 
 
-    '                  Event                   Window  Trading days  Anomalies Rate\nGlobal financial crisis 2008-09-01 to 2009-03-31           146          1 0.7%\n            COVID crash 2020-02-15 to 2020-04-30            52          1 1.9%\n        Rate-hike onset 2022-01-01 to 2022-06-30           124          0 0.0%\n Full sample (baseline) 2000-01-04 to 2026-08-14          6692         25 0.4%'
+    '                  Event                   Window  Trading days  Anomalies Rate\nGlobal financial crisis 2008-09-01 to 2009-03-31           146          2 1.4%\n            COVID crash 2020-02-15 to 2020-04-30            52          1 1.9%\n        Rate-hike onset 2022-01-01 to 2022-06-30           124          0 0.0%\n Full sample (baseline) 2000-01-04 to 2026-09-25          6721         56 0.8%'
 
 
 
 ```python
-# What fraction of all anomalies fall within known events?
+# What fraction of anomaly flags fall within the known stress windows, and how
+# does that compare with the share of calendar time those windows cover?
 in_events = 0
+event_days = 0
 for _, (start, end) in events.items():
     mask = (anomaly_df.index >= start) & (anomaly_df.index <= end)
-    in_events += anomaly_99.loc[mask].sum()
+    in_events += int(anomaly_99.loc[mask].sum())
+    event_days += int(mask.sum())
 
 pct_in_events = in_events / n_99 * 100
 pct_outside = 100 - pct_in_events
+event_share = event_days / n_total * 100
+expected_in_events = n_99 * event_days / n_total
+cov_events = binomtest(in_events, int(n_99), event_days / n_total,
+                       alternative='two-sided')
+
+if cov_events.pvalue > 0.05:
+    event_reading = (
+        "Flags fall inside the stress windows at a rate consistent with their "
+        "share of calendar time. This is the expected behaviour of a "
+        "well-specified volatility model: GARCH raises its conditional "
+        "variance during sustained stress, so crisis-period moves become less "
+        "surprising once the model has adjusted, and standardised residuals "
+        "should not cluster in crises. The anomaly flag is therefore not a "
+        "crisis detector. Crisis identification is the regime classifier's "
+        "role; the anomaly flag marks days that surprised the model relative "
+        "to its own volatility estimate."
+    )
+elif in_events > expected_in_events:
+    event_reading = (
+        "Flags are over-represented in the stress windows, which indicates the "
+        "model adjusts too slowly to sustained stress and under-predicts "
+        "crisis-period variance."
+    )
+else:
+    event_reading = (
+        "Flags are under-represented in the stress windows, which indicates the "
+        "model over-adjusts its variance during sustained stress."
+    )
 
 display(Markdown(f"""
-**{pct_in_events:.0f}%** of all 1% anomaly flags fall within the three
-known stress windows. The remaining **{pct_outside:.0f}%** occur outside
-these periods. These "quiet-period anomalies" are the detector's primary
-value: observations that surprised the model during conditions the regime
-classifier would label Calm or Normal.
+**{in_events}** of **{n_99}** anomaly flags ({pct_in_events:.1f}%) fall within
+the three known stress windows. Those windows cover **{event_days:,}** trading
+days, **{event_share:.1f}%** of the sample, so an even spread through time would
+place **{expected_in_events:.1f}** flags inside them. An exact two-sided
+binomial test of the observed count against that share gives
+p = **{cov_events.pvalue:.4f}**.
+
+{event_reading}
 """))
 ```
 
 
 
-**8%** of all 1% anomaly flags fall within the three
-known stress windows. The remaining **92%** occur outside
-these periods. These "quiet-period anomalies" are the detector's primary
-value: observations that surprised the model during conditions the regime
-classifier would label Calm or Normal.
+**3** of **56** anomaly flags (5.4%) fall within
+the three known stress windows. Those windows cover **322** trading
+days, **4.8%** of the sample, so an even spread through time would
+place **2.7** flags inside them. An exact two-sided
+binomial test of the observed count against that share gives
+p = **0.7505**.
+
+Flags fall inside the stress windows at a rate consistent with their share of calendar time. This is the expected behaviour of a well-specified volatility model: GARCH raises its conditional variance during sustained stress, so crisis-period moves become less surprising once the model has adjusted, and standardised residuals should not cluster in crises. The anomaly flag is therefore not a crisis detector. Crisis identification is the regime classifier's role; the anomaly flag marks days that surprised the model relative to its own volatility estimate.
 
 
 
@@ -528,7 +611,7 @@ display(regime_cross_df.to_string(index=False))
 ```
 
 
-    'Regime  Days  Anomalies Rate\n  Calm  1673         15 0.9%\nNormal  3346          8 0.2%\nStress  1338          1 0.1%\nCrisis   335          1 0.3%'
+    'Regime  Days  Anomalies Rate\n  Calm  1681         26 1.5%\nNormal  3360         23 0.7%\nStress  1344          6 0.4%\nCrisis   336          1 0.3%'
 
 
 
@@ -557,7 +640,7 @@ expected less variance.
 
 
 
-**23** anomalies occurred during Calm or Normal regimes.
+**49** anomalies occurred during Calm or Normal regimes.
 These are days the regime classifier would not have flagged, but the
 anomaly detector caught because the return exceeded what the model
 expected at the current volatility level.
@@ -610,9 +693,11 @@ cares about most.
 
 
 ```python
-# Compare empirical residual distribution to fitted Student's t
+# Compare empirical residuals to the standardised Student's t. If T ~ t(nu)
+# and Z = T * t_scale, then Var(Z) = 1 and the density of Z is
+# f_T(z / t_scale) / t_scale. Same scaling as the thresholds, same nu source.
 x_grid = np.linspace(-8, 8, 500)
-t_pdf = t_dist.pdf(x_grid, df=nu)
+t_pdf = t_dist.pdf(x_grid / t_scale, df=nu_production) / t_scale
 
 fig = go.Figure()
 fig.add_trace(go.Histogram(
@@ -621,7 +706,7 @@ fig.add_trace(go.Histogram(
 ))
 fig.add_trace(go.Scatter(
     x=x_grid, y=t_pdf, mode='lines',
-    name=f'Student t(nu={nu:.1f})',
+    name=f'Standardised t(ν={nu_production:.2f})',
     line=dict(color='white', width=2),
 ))
 fig.add_vline(x=threshold_99, line_dash='dash', line_color='#E24B4A',
@@ -630,7 +715,7 @@ fig.add_vline(x=-threshold_99, line_dash='dash', line_color='#E24B4A')
 
 fig.update_layout(
     template='plotly_dark',
-    title='Standardised residuals vs fitted Student t distribution',
+    title='Standardised residuals vs production Student t distribution',
     xaxis_title='Standardised residual',
     yaxis_title='Density', height=400,
 )
@@ -641,12 +726,18 @@ fig.show()
 
 
 ```python
-# Annual anomaly counts
+# Annual anomaly counts. The final year runs only to the data cutoff, so it is
+# excluded from the year-on-year comparison and reported separately below.
 anomaly_series = pd.Series(anomaly_99.values, index=returns.index, name='anomaly')
-annual = anomaly_series.groupby(anomaly_series.index.year).sum()
+annual_all = anomaly_series.groupby(anomaly_series.index.year).sum()
+
+cutoff_year = returns.index.max().year
+complete = annual_all[annual_all.index < cutoff_year]
+partial_count = int(annual_all.get(cutoff_year, 0))
+partial_days = int((anomaly_series.index.year == cutoff_year).sum())
 
 fig = go.Figure(go.Bar(
-    x=annual.index.astype(str), y=annual.values,
+    x=complete.index.astype(str), y=complete.values,
     marker_color='#E24B4A',
 ))
 fig.add_hline(
@@ -655,12 +746,28 @@ fig.add_hline(
 )
 fig.update_layout(
     template='plotly_dark',
-    title='Anomaly flags by year',
+    title=f'Anomaly flags by year (2000 to {cutoff_year - 1})',
     xaxis_title='Year', yaxis_title='Anomaly count',
     height=400,
 )
 fig.show()
+
+display(Markdown(f"""
+The chart shows complete calendar years only. {cutoff_year} is excluded because
+it runs to the data cutoff of {returns.index.max().date()}, covering
+{partial_days} trading days, and its {partial_count} flag{'s' if partial_count != 1 else ''}
+are not comparable to a full year against the {252 * 0.01:.1f}-per-year line.
+"""))
 ```
+
+
+
+
+
+The chart shows complete calendar years only. 2026 is excluded because
+it runs to the data cutoff of 2026-09-25, covering
+184 trading days, and its 2 flags
+are not comparable to a full year against the 2.5-per-year line.
 
 
 
@@ -690,41 +797,51 @@ but are outside the scope of Version 1.
 
 ```python
 display(Markdown(f"""
-The GJR-GARCH standardised residuals provide a natural anomaly detection
-signal. At the 1% threshold, {n_99} trading days out of {n_total:,} were
-flagged. {pct_in_events:.0f}% of these fall within the three known stress
-windows (2008 financial crisis, 2020 COVID crash, 2022 rate-hike onset).
-The remaining {pct_outside:.0f}% are quiet-period surprises the regime
-classifier alone would not have flagged.
+The GJR-GARCH standardised residuals provide a natural anomaly signal. At the
+1% threshold, {n_99} of {n_total:,} trading days were flagged, and the exact
+binomial coverage test does not reject the nominal rate
+(p = {cov_99.pvalue:.4f}).
 
-{quiet_anomalies} anomalies occurred during Calm or Normal regimes.
-{'Negative anomalies outnumber positive ones, consistent with the leverage effect: downward shocks are more surprising conditional on the model estimate.' if neg_anomalies > pos_anomalies else 'The split between positive and negative anomalies is roughly even.'}
+Two independent lenses describe where these flags fall. By calendar window,
+{in_events} of {n_99} sit inside the three known stress periods, close to the
+{expected_in_events:.1f} an even spread would place there, so the flags do not
+concentrate in recognised crises. By volatility regime, {quiet_anomalies} fall
+in Calm or Normal conditions. These counts partition the same flags on
+different axes and are not meant to reconcile.
 
-The anomaly flag and z-score are exported for Notebook 08, where they
-join the volatility forecast and regime label in the Daily Market Risk
-Report. The anomaly layer adds the question the regime classifier cannot
-answer: not "is volatility high?" but "did something happen that the
-model did not expect?"
+Together they fix the flag's role. It is not a crisis detector; the regime
+classifier identifies stress. The anomaly flag marks days that surprised the
+model relative to its own conditional variance, which is the question the
+regime label cannot answer: not "is volatility high?" but "did something happen
+the model did not expect?"
+
+The flag and z-score export to Notebook 08, where they join the volatility
+forecast and regime label in the Daily Market Risk Report.
 """))
 ```
 
 
 
-The GJR-GARCH standardised residuals provide a natural anomaly detection
-signal. At the 1% threshold, 25 trading days out of 6,692 were
-flagged. 8% of these fall within the three known stress
-windows (2008 financial crisis, 2020 COVID crash, 2022 rate-hike onset).
-The remaining 92% are quiet-period surprises the regime
-classifier alone would not have flagged.
+The GJR-GARCH standardised residuals provide a natural anomaly signal. At the
+1% threshold, 56 of 6,721 trading days were flagged, and the exact
+binomial coverage test does not reject the nominal rate
+(p = 0.1776).
 
-23 anomalies occurred during Calm or Normal regimes.
-Negative anomalies outnumber positive ones, consistent with the leverage effect: downward shocks are more surprising conditional on the model estimate.
+Two independent lenses describe where these flags fall. By calendar window,
+3 of 56 sit inside the three known stress periods, close to the
+2.7 an even spread would place there, so the flags do not
+concentrate in recognised crises. By volatility regime, 49 fall
+in Calm or Normal conditions. These counts partition the same flags on
+different axes and are not meant to reconcile.
 
-The anomaly flag and z-score are exported for Notebook 08, where they
-join the volatility forecast and regime label in the Daily Market Risk
-Report. The anomaly layer adds the question the regime classifier cannot
-answer: not "is volatility high?" but "did something happen that the
-model did not expect?"
+Together they fix the flag's role. It is not a crisis detector; the regime
+classifier identifies stress. The anomaly flag marks days that surprised the
+model relative to its own conditional variance, which is the question the
+regime label cannot answer: not "is volatility high?" but "did something happen
+the model did not expect?"
+
+The flag and z-score export to Notebook 08, where they join the volatility
+forecast and regime label in the Daily Market Risk Report.
 
 
 
@@ -749,12 +866,17 @@ print(f'Shape: {export_df.shape}')
 
 # ── Export metrics to locked_metrics.json ──
 metrics['notebook_07'] = {
-    'nu_fitted':             round(float(nu), 2),
+    'nu_used_for_threshold': float(nu_production),
+    'nu_source':             'notebook_05.garch_nu',
+    'nu_refit_local':        round(float(nu), 2),
+    'nu_refit_local_nobs':   int(n_total),
     'threshold_99':          round(float(threshold_99), 3),
     'threshold_95':          round(float(threshold_95), 3),
     'n_anomalies_1pct':      int(n_99),
     'n_anomalies_5pct':      int(n_95),
     'n_total_days':          int(n_total),
+    'coverage_p_1pct':       float(cov_99.pvalue),
+    'coverage_p_5pct':       float(cov_95.pvalue),
     'pct_in_known_events':   round(float(pct_in_events), 1),
     'quiet_period_anomalies': int(quiet_anomalies),
     'neg_anomaly_share':     round(float(neg_anomalies / n_99 * 100), 1),
@@ -767,16 +889,21 @@ for k, v in metrics['notebook_07'].items():
 ```
 
     Anomaly data saved to C:\Users\Mena\Documents\Python\sp500-market-intelligence\data\nb07_anomalies.parquet
-    Shape: (6692, 6)
+    Shape: (6721, 6)
     
     Exported notebook_07 metrics to C:\Users\Mena\Documents\Python\sp500-market-intelligence\data\locked_metrics.json
-      nu_fitted: 6.88
-      threshold_99: 3.52
-      threshold_95: 2.373
-      n_anomalies_1pct: 25
-      n_anomalies_5pct: 169
-      n_total_days: 6692
-      pct_in_known_events: 8.0
-      quiet_period_anomalies: 23
-      neg_anomaly_share: 100.0
+      nu_used_for_threshold: 6.760109587620447
+      nu_source: notebook_05.garch_nu
+      nu_refit_local: 6.94
+      nu_refit_local_nobs: 6721
+      threshold_99: 2.972
+      threshold_95: 1.999
+      n_anomalies_1pct: 56
+      n_anomalies_5pct: 327
+      n_total_days: 6721
+      coverage_p_1pct: 0.17756784429545253
+      coverage_p_5pct: 0.6342710221416591
+      pct_in_known_events: 5.4
+      quiet_period_anomalies: 49
+      neg_anomaly_share: 87.5
     

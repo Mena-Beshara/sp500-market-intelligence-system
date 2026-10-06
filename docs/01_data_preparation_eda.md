@@ -216,9 +216,9 @@ print(f'Most recent session is {staleness_days} day(s) old')
 
     [*********************100%***********************]  1 of 1 completed
 
-    Delivered coverage: 2000-01-03 to 2026-08-17
-    Total sessions: 6,695
-    Span: 26.63 years, 251.4 sessions per year
+    Delivered coverage: 2000-01-03 to 2026-09-28
+    Total sessions: 6,724
+    Span: 26.74 years, 251.5 sessions per year
     Most recent session is 0 day(s) old
     
 
@@ -338,53 +338,53 @@ raw
       <td>...</td>
     </tr>
     <tr>
-      <th>2026-08-11</th>
-      <td>7728.200195</td>
-      <td>7728.200195</td>
-      <td>7767.509766</td>
-      <td>7717.250000</td>
-      <td>7767.509766</td>
-      <td>4739500000</td>
+      <th>2026-09-22</th>
+      <td>7764.640137</td>
+      <td>7764.640137</td>
+      <td>7782.189941</td>
+      <td>7756.259766</td>
+      <td>7770.810059</td>
+      <td>5286270000</td>
     </tr>
     <tr>
-      <th>2026-08-12</th>
-      <td>7748.500000</td>
-      <td>7748.500000</td>
-      <td>7766.009766</td>
-      <td>7737.950195</td>
-      <td>7765.459961</td>
-      <td>4574170000</td>
+      <th>2026-09-23</th>
+      <td>7706.029785</td>
+      <td>7706.029785</td>
+      <td>7761.939941</td>
+      <td>7694.890137</td>
+      <td>7761.939941</td>
+      <td>5110910000</td>
     </tr>
     <tr>
-      <th>2026-08-13</th>
-      <td>7798.990234</td>
-      <td>7798.990234</td>
-      <td>7816.700195</td>
-      <td>7763.180176</td>
-      <td>7763.180176</td>
-      <td>4833230000</td>
+      <th>2026-09-24</th>
+      <td>7704.129883</td>
+      <td>7704.129883</td>
+      <td>7719.009766</td>
+      <td>7662.569824</td>
+      <td>7666.990234</td>
+      <td>5316390000</td>
     </tr>
     <tr>
-      <th>2026-08-14</th>
-      <td>7785.759766</td>
-      <td>7785.759766</td>
-      <td>7810.009766</td>
-      <td>7776.310059</td>
-      <td>7806.600098</td>
-      <td>4159900000</td>
+      <th>2026-09-25</th>
+      <td>7743.410156</td>
+      <td>7743.410156</td>
+      <td>7752.069824</td>
+      <td>7693.080078</td>
+      <td>7709.859863</td>
+      <td>4499180000</td>
     </tr>
     <tr>
-      <th>2026-08-17</th>
-      <td>7757.049805</td>
-      <td>7757.049805</td>
-      <td>7790.680176</td>
-      <td>7751.830078</td>
-      <td>7790.680176</td>
-      <td>1400190000</td>
+      <th>2026-09-28</th>
+      <td>7683.689941</td>
+      <td>7683.689941</td>
+      <td>7724.149902</td>
+      <td>7666.600098</td>
+      <td>7721.700195</td>
+      <td>2909239000</td>
     </tr>
   </tbody>
 </table>
-<p>6695 rows × 6 columns</p>
+<p>6724 rows × 6 columns</p>
 </div>
 
 
@@ -457,8 +457,8 @@ if len(unexpected_sessions) > 0:
     print(f'  Unexpected: {[str(d.date()) for d in unexpected_sessions[:10]]}')
 ```
 
-    NYSE sessions expected: 6,695
-    Sessions in dataset:    6,695
+    NYSE sessions expected: 6,724
+    Sessions in dataset:    6,724
     Missing from dataset:   0
     Not on NYSE calendar:   0
     
@@ -493,16 +493,16 @@ coverage from a handful of scattered omissions. The set comparison can.
 The dataset index was compared against the New York Stock Exchange trading
 schedule across the full sample, in both directions.
 
-- NYSE sessions expected over the range: **6,695**
-- Sessions present in the dataset: **6,695**
+- NYSE sessions expected over the range: **6,724**
+- Sessions present in the dataset: **6,724**
 - Exchange sessions absent from the dataset: **0**
 - Dataset dates on which the exchange was closed: **0**
 
 Calendar coverage is complete. Every session the exchange held is present, and the dataset contains no dates outside the exchange schedule.
 
 This is a stronger claim than a session count supports. Dividing
-6,695 sessions by a 26.63 year span gives
-251.4 sessions per year against a benchmark near 252,
+6,724 sessions by a 26.74 year span gives
+251.5 sessions per year against a benchmark near 252,
 which is consistent with complete coverage but cannot distinguish complete
 coverage from a handful of scattered omissions. The set comparison can.
 
@@ -550,7 +550,7 @@ raw.shape
 
 
 
-    (6695, 6)
+    (6724, 6)
 
 
 
@@ -622,30 +622,30 @@ summary
   <tbody>
     <tr>
       <th>count</th>
-      <td>6695.000000</td>
-      <td>6695.000000</td>
-      <td>6695.000000</td>
-      <td>6695.000000</td>
-      <td>6695.000000</td>
-      <td>6.695000e+03</td>
+      <td>6724.000000</td>
+      <td>6724.000000</td>
+      <td>6724.000000</td>
+      <td>6724.000000</td>
+      <td>6724.000000</td>
+      <td>6.724000e+03</td>
     </tr>
     <tr>
       <th>mean</th>
-      <td>2382.841487</td>
-      <td>2382.841487</td>
-      <td>2395.921461</td>
-      <td>2367.982472</td>
-      <td>2382.445149</td>
-      <td>3.467184e+09</td>
+      <td>2405.665837</td>
+      <td>2405.665837</td>
+      <td>2418.804481</td>
+      <td>2390.769051</td>
+      <td>2405.286709</td>
+      <td>3.473662e+09</td>
     </tr>
     <tr>
       <th>std</th>
-      <td>1616.168927</td>
-      <td>1616.168927</td>
-      <td>1623.209929</td>
-      <td>1607.862675</td>
-      <td>1615.745204</td>
-      <td>1.534724e+09</td>
+      <td>1649.555026</td>
+      <td>1649.555026</td>
+      <td>1656.611004</td>
+      <td>1641.331521</td>
+      <td>1649.196170</td>
+      <td>1.535128e+09</td>
     </tr>
     <tr>
       <th>min</th>
@@ -658,30 +658,30 @@ summary
     </tr>
     <tr>
       <th>25%</th>
-      <td>1215.655029</td>
-      <td>1215.655029</td>
-      <td>1223.040039</td>
-      <td>1209.144958</td>
-      <td>1215.505005</td>
-      <td>2.366070e+09</td>
+      <td>1216.602509</td>
+      <td>1216.602509</td>
+      <td>1224.544952</td>
+      <td>1210.024963</td>
+      <td>1216.167450</td>
+      <td>2.375778e+09</td>
     </tr>
     <tr>
       <th>50%</th>
-      <td>1585.160034</td>
-      <td>1585.160034</td>
-      <td>1592.640015</td>
-      <td>1577.560059</td>
-      <td>1582.770020</td>
-      <td>3.560750e+09</td>
+      <td>1613.639954</td>
+      <td>1613.639954</td>
+      <td>1621.315002</td>
+      <td>1605.504944</td>
+      <td>1611.299988</td>
+      <td>3.566525e+09</td>
     </tr>
     <tr>
       <th>75%</th>
-      <td>2995.905029</td>
-      <td>2995.905029</td>
-      <td>3006.770020</td>
-      <td>2980.400024</td>
-      <td>2996.660034</td>
-      <td>4.325015e+09</td>
+      <td>3015.615051</td>
+      <td>3015.615051</td>
+      <td>3030.047485</td>
+      <td>3000.544922</td>
+      <td>3016.229980</td>
+      <td>4.339035e+09</td>
     </tr>
     <tr>
       <th>max</th>
@@ -708,7 +708,7 @@ display(Markdown(
 ```
 
 
-The dataset contains **6,695 daily observations** spanning **26.63 years**, providing a sufficiently large sample for statistical analysis and modelling.
+The dataset contains **6,724 daily observations** spanning **26.74 years**, providing a sufficiently large sample for statistical analysis and modelling.
 
 
 
@@ -915,7 +915,7 @@ explicitly by name. Standardising the schema at acquisition keeps column access
 simple and makes it independent of the library version that produced it.
 
 `Adj Close` was dropped rather than retained. The largest absolute difference
-between `Adj Close` and `Close` across all 6,695 sessions is
+between `Adj Close` and `Close` across all 6,724 sessions is
 **0.0**, confirming that no dividend or split adjustment applies to
 this series. That is the expected behaviour for a price index, and it is
 verified here rather than assumed.
@@ -1276,10 +1276,10 @@ record with a known corrupt field carry no guarantee.
 
 ---
 
-Sessions before cleaning: **6,695**
+Sessions before cleaning: **6,724**
 Observations removed: **1**
-Sessions after cleaning: **6,694**
-Range after cleaning: **2000-01-03 to 2026-08-17**
+Sessions after cleaning: **6,723**
+Range after cleaning: **2000-01-03 to 2026-09-28**
 
 
 
@@ -1367,7 +1367,7 @@ else:
           'guard did not fire on this run.')
 ```
 
-    Incomplete session detected and removed: 2026-08-17
+    Incomplete session detected and removed: 2026-09-28
     
 
 
@@ -1414,44 +1414,44 @@ raw.tail()
   </thead>
   <tbody>
     <tr>
-      <th>2026-08-10</th>
-      <td>7751.740234</td>
-      <td>7773.759766</td>
-      <td>7743.109863</td>
-      <td>7753.109863</td>
-      <td>4879540000</td>
+      <th>2026-09-21</th>
+      <td>7692.830078</td>
+      <td>7779.220215</td>
+      <td>7691.189941</td>
+      <td>7764.700195</td>
+      <td>4828050000</td>
     </tr>
     <tr>
-      <th>2026-08-11</th>
-      <td>7767.509766</td>
-      <td>7767.509766</td>
-      <td>7717.250000</td>
-      <td>7728.200195</td>
-      <td>4739500000</td>
+      <th>2026-09-22</th>
+      <td>7770.810059</td>
+      <td>7782.189941</td>
+      <td>7756.259766</td>
+      <td>7764.640137</td>
+      <td>5286270000</td>
     </tr>
     <tr>
-      <th>2026-08-12</th>
-      <td>7765.459961</td>
-      <td>7766.009766</td>
-      <td>7737.950195</td>
-      <td>7748.500000</td>
-      <td>4574170000</td>
+      <th>2026-09-23</th>
+      <td>7761.939941</td>
+      <td>7761.939941</td>
+      <td>7694.890137</td>
+      <td>7706.029785</td>
+      <td>5110910000</td>
     </tr>
     <tr>
-      <th>2026-08-13</th>
-      <td>7763.180176</td>
-      <td>7816.700195</td>
-      <td>7763.180176</td>
-      <td>7798.990234</td>
-      <td>4833230000</td>
+      <th>2026-09-24</th>
+      <td>7666.990234</td>
+      <td>7719.009766</td>
+      <td>7662.569824</td>
+      <td>7704.129883</td>
+      <td>5316390000</td>
     </tr>
     <tr>
-      <th>2026-08-14</th>
-      <td>7806.600098</td>
-      <td>7810.009766</td>
-      <td>7776.310059</td>
-      <td>7785.759766</td>
-      <td>4159900000</td>
+      <th>2026-09-25</th>
+      <td>7709.859863</td>
+      <td>7752.069824</td>
+      <td>7693.080078</td>
+      <td>7743.410156</td>
+      <td>4499180000</td>
     </tr>
   </tbody>
 </table>
@@ -1627,13 +1627,13 @@ raw['log_returns'].describe()
 
 
 
-    count    6692.000000
-    mean        0.000251
-    std         0.012144
+    count    6721.000000
+    mean        0.000249
+    std         0.012125
     min        -0.127652
-    25%        -0.004712
-    50%         0.000639
-    75%         0.005885
+    25%        -0.004724
+    50%         0.000633
+    75%         0.005878
     max         0.109572
     Name: log_returns, dtype: float64
 
@@ -1659,7 +1659,7 @@ behaviour.
 
 
 
-The mean of log returns is **0.000251**, close to zero and
+The mean of log returns is **0.000249**, close to zero and
 consistent with empirical findings in financial markets. That alone does not
 imply predictability, and it does not confirm stationarity. A formal test is
 required, and the Augmented Dickey-Fuller test is applied below.
@@ -1771,7 +1771,7 @@ independently, which is the first visible evidence of volatility clustering.
 
 Under a normal distribution with this sample's standard deviation, a move of
 10.5 standard deviations carries a probability far
-below one in a billion per session. Observing one inside 6,692 sessions
+below one in a billion per session. Observing one inside 6,721 sessions
 is direct evidence that returns are not normally distributed, tested formally
 in Notebook 02 and modelled through Student's t innovations in Notebook 05.
 
@@ -2030,11 +2030,11 @@ adf_crit = adf_result[4]
 
     ADF test for Log returns
     ------------------------------
-    ADF statistic : -19.6778
+    ADF statistic : -19.4806
     P-value       : < 0.0001
     Reject null hypothesis — series is stationary
-    Lags used     : 17
-    Observations  : 6,674
+    Lags used     : 18
+    Observations  : 6,702
     Critical values:
        1%: -3.4313
        5%: -2.8620
@@ -2091,13 +2091,13 @@ statistic does not follow a normal distribution under the null.
 
 **Test results**
 
-- ADF statistic: **-19.6778**
+- ADF statistic: **-19.4806**
 - P-value: **< 0.0001**
-- Lags included: **17**
-- Observations used: **6,674**
+- Lags included: **18**
+- Observations used: **6,702**
 - Critical values: 1% **-3.4313**, 5% **-2.8620**, 10% **-2.5670**
 
-The statistic of -19.6778 is far below the 1% critical value of
+The statistic of -19.4806 is far below the 1% critical value of
 -3.4313, so the null hypothesis of a unit root is rejected at the
 1% level. Log returns are stationary in the mean.
 
@@ -2251,7 +2251,7 @@ time-varying volatility directly. The series ranges from
 maximum occurring on **2020-04-08**, against an
 unconditional value of **1.21%**. The peak is
 **4.5 times** the unconditional figure and
-the trough **0.18 times** it, so a single
+the trough **0.19 times** it, so a single
 constant estimate misstates risk in both directions depending on the period.
 
 The rolling estimate is backward-looking and equally weighted, so it reacts to
@@ -2298,7 +2298,7 @@ print(raw['Drawdown'].nsmallest(5))
 
     Maximum drawdown: -56.78%
     Date of maximum drawdown: 2009-03-09
-    Current drawdown (as of 2026-08-14): -0.17%
+    Current drawdown (as of 2026-09-25): -0.71%
     
 
 
@@ -2346,7 +2346,7 @@ volatility of individual sessions. It is the risk measure most directly tied to
 the experience of holding an asset.
 
 - Maximum drawdown: **-56.78%**, reached on **2009-03-09**
-- Current drawdown as of 2026-08-14: **-0.17%**
+- Current drawdown as of 2026-09-25: **-0.71%**
 
 The maximum figure is a function of the sample start date. The return series
 opens on 2000-01-04, close to the dot-com peak, so the sample
@@ -2383,8 +2383,8 @@ significant and AIC was worse than the ARIMA baseline. Seasonality was rejected
 as a modelling input on that evidence, and the patterns below are not used in
 any downstream model.
 
-Dataset period: 2000-01-04 to 2026-08-14
-Total sessions analysed: 6,692
+Dataset period: 2000-01-04 to 2026-09-25
+Total sessions analysed: 6,721
 
 
 
@@ -2427,11 +2427,11 @@ fig.show()
 
     Average log return by day of week:
      DayOfWeek
-    Monday       1.488024e-04
-    Tuesday      5.348646e-04
-    Wednesday    3.057490e-04
-    Thursday     2.489130e-04
-    Friday       1.193515e-07
+    Monday       0.000147
+    Tuesday      0.000517
+    Wednesday    0.000297
+    Thursday     0.000258
+    Friday       0.000010
     Name: log_returns, dtype: float64
     
     Average log return by month:
@@ -2443,8 +2443,8 @@ fig.show()
     May          0.000359
     June        -0.000077
     July         0.000664
-    August       0.000110
-    September   -0.000714
+    August       0.000086
+    September   -0.000677
     October      0.000534
     November     0.000984
     December     0.000247
@@ -2484,7 +2484,7 @@ display(Markdown(f"""
 **Average log return by day of week**
 
 - Strongest: {best_dow} ({best_dow_val:.6f})
-- Weakest: {worst_dow} ({worst_dow_val:.6f})
+- Weakest: {worst_dow} ({worst_dow_val:.3e})
 
 **Average log return by month**
 
@@ -2515,18 +2515,18 @@ seasonality, and no downstream model uses these patterns.
 
 **Average log return by day of week**
 
-- Strongest: Tuesday (0.000535)
-- Weakest: Friday (0.000000)
+- Strongest: Tuesday (0.000517)
+- Weakest: Friday (1.006e-05)
 
 **Average log return by month**
 
 - Strongest: November (0.000984)
-- Weakest: September (-0.000714)
+- Weakest: September (-0.000677)
 
-The day-of-week spread is 0.000535. With roughly
-1,338 observations per weekday, the standard error of a
-single weekday mean is about 0.000332, and the standard error of
-the difference between two weekday means is about 0.000469. The observed
+The day-of-week spread is 0.000507. With roughly
+1,344 observations per weekday, the standard error of a
+single weekday mean is about 0.000331, and the standard error of
+the difference between two weekday means is about 0.000468. The observed
 spread is therefore roughly **1.1 standard errors**, which is not
 distinguishable from sampling noise at any conventional threshold.
 
@@ -2681,7 +2681,7 @@ display(pd.Series(nb01_metrics, name='value').to_frame())
 
     Wrote 36 keys under notebook_01 in ..\data\locked_metrics.json
     Orphaned flat keys purged: 0
-    Other top-level blocks preserved: ['notebook_02', 'notebook_04', 'notebook_05', 'notebook_06']
+    Other top-level blocks preserved: ['notebook_02', 'notebook_04', 'notebook_05', 'notebook_06', 'notebook_07']
     
 
 
@@ -2709,7 +2709,7 @@ display(pd.Series(nb01_metrics, name='value').to_frame())
   <tbody>
     <tr>
       <th>as_of_date</th>
-      <td>2026-08-14</td>
+      <td>2026-09-25</td>
     </tr>
     <tr>
       <th>price_series_start</th>
@@ -2721,19 +2721,19 @@ display(pd.Series(nb01_metrics, name='value').to_frame())
     </tr>
     <tr>
       <th>span_years</th>
-      <td>26.625599</td>
+      <td>26.740589</td>
     </tr>
     <tr>
       <th>sessions_downloaded</th>
-      <td>6695</td>
+      <td>6724</td>
     </tr>
     <tr>
       <th>sessions_after_cleaning</th>
-      <td>6694</td>
+      <td>6723</td>
     </tr>
     <tr>
       <th>return_observations</th>
-      <td>6692</td>
+      <td>6721</td>
     </tr>
     <tr>
       <th>zero_volume_removed</th>
@@ -2753,7 +2753,7 @@ display(pd.Series(nb01_metrics, name='value').to_frame())
     </tr>
     <tr>
       <th>nyse_sessions_expected</th>
-      <td>6695</td>
+      <td>6724</td>
     </tr>
     <tr>
       <th>adj_close_identical_to_close</th>
@@ -2761,7 +2761,7 @@ display(pd.Series(nb01_metrics, name='value').to_frame())
     </tr>
     <tr>
       <th>adf_stat</th>
-      <td>-19.677837</td>
+      <td>-19.480587</td>
     </tr>
     <tr>
       <th>adf_pvalue</th>
@@ -2769,31 +2769,31 @@ display(pd.Series(nb01_metrics, name='value').to_frame())
     </tr>
     <tr>
       <th>adf_lags</th>
-      <td>17</td>
+      <td>18</td>
     </tr>
     <tr>
       <th>adf_nobs</th>
-      <td>6674</td>
+      <td>6702</td>
     </tr>
     <tr>
       <th>adf_crit_1pct</th>
-      <td>-3.43133</td>
+      <td>-3.431326</td>
     </tr>
     <tr>
       <th>adf_crit_5pct</th>
-      <td>-2.861973</td>
+      <td>-2.861971</td>
     </tr>
     <tr>
       <th>adf_crit_10pct</th>
-      <td>-2.567001</td>
+      <td>-2.567</td>
     </tr>
     <tr>
       <th>daily_vol_pct</th>
-      <td>1.214434</td>
+      <td>1.212501</td>
     </tr>
     <tr>
       <th>mean_log_return</th>
-      <td>0.000251</td>
+      <td>0.000249</td>
     </tr>
     <tr>
       <th>rolling_vol_window</th>
@@ -2833,7 +2833,7 @@ display(pd.Series(nb01_metrics, name='value').to_frame())
     </tr>
     <tr>
       <th>current_drawdown</th>
-      <td>-0.001696</td>
+      <td>-0.007127</td>
     </tr>
     <tr>
       <th>largest_daily_loss_log</th>
@@ -2928,10 +2928,10 @@ data integrity error rather than a market condition. The dataset index was
 compared against the full NYSE trading schedule in both directions:
 every session the exchange held is present and no dataset date falls outside the exchange calendar.
 The most recent session was dropped as incomplete.
-The price series covers 2000-01-03 to 2026-08-14,
-26.63 years, from 6,695 sessions downloaded. The return
-series covers 2000-01-04 to 2026-08-14 with
-6,692 observations.
+The price series covers 2000-01-03 to 2026-09-25,
+26.74 years, from 6,724 sessions downloaded. The return
+series covers 2000-01-04 to 2026-09-25 with
+6,721 observations.
 
 **Return transformation.** Closing prices were converted to log returns. Log
 returns are additive across time, approximately symmetric for small price
@@ -2940,12 +2940,12 @@ return series begins one session after the price series, since the first
 observation has no prior close against which to compute a return.
 
 **Stationarity.** The Augmented Dickey-Fuller test rejects the null hypothesis
-of a unit root: ADF statistic -19.6778 against a 1% critical value of
--3.4313, p-value < 0.0001, using 17 lags
-over 6,674 observations. Log returns are stationary in the mean, which is
+of a unit root: ADF statistic -19.4806 against a 1% critical value of
+-3.4313, p-value < 0.0001, using 18 lags
+over 6,702 observations. Log returns are stationary in the mean, which is
 a necessary condition for the time series models applied in Notebooks 04 and 05.
 
-**Volatility structure.** Log returns have a mean of 0.000251,
+**Volatility structure.** Log returns have a mean of 0.000249,
 effectively zero, and an unconditional daily standard deviation of
 1.21%. Volatility is not constant: the 30-day
 rolling estimate ranges from 0.22% to

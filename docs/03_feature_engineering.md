@@ -153,8 +153,8 @@ print(f"Rows: {summary['rows']:,}")
 print(f"Date range: {summary['start']} → {summary['end']}")
 ```
 
-    Rows: 6,692
-    Date range: 2000-01-04 → 2026-08-14
+    Rows: 6,721
+    Date range: 2000-01-04 → 2026-09-25
     
 
 ## Loaded cleaned dataset
@@ -184,8 +184,8 @@ construction begins.
 
 ## Dataset validation
 
-- **Rows:** 6,692
-- **Temporal coverage:** 2000-01-04 → 2026-08-14
+- **Rows:** 6,721
+- **Temporal coverage:** 2000-01-04 → 2026-09-25
 
 Confirms the loaded dataset matches the expected EDA output before feature
 construction begins.
@@ -233,7 +233,7 @@ print(f'  ARCH-LM p-value   : {arch_lm_p:.3g}')
 ```
 
     Loaded from locked_metrics.json:
-      ARCH-LM statistic : 1,786.70 (10 lags)
+      ARCH-LM statistic : 1,795.28 (10 lags)
       ARCH-LM p-value   : 0
     
 
@@ -307,7 +307,7 @@ redundancy. PACF on raw returns showed limited directional persistence,
 concentrated in the earliest lags. Squared returns told a different story:
 ACF and PACF diagnostics revealed significant short-term volatility dependence
 — consistent with the ARCH-LM result
-(LM = 1,786.70, 10 lags,
+(LM = 1,795.28, 10 lags,
 p < 0.001)
 from the diagnostics notebook.
 
@@ -419,11 +419,21 @@ low_close = np.abs(df['Low'] - df['Close'].shift())
 tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
 df['atr_14'] = tr.rolling(window=14).mean()
 
-print('Technical Indicators created: RSI, MACD, Bollinger Bands, ATR')
+# 5- Scale-free versions of ATR and volume. ATR is in index points and raw
+#    volume in shares, so both drift with the market's level; these do not.
+#    Both use only data available at each date.
+df['atr_pct_14'] = df['atr_14'] / df['Close']
+df['volume_rel_21'] = np.log(
+    df['volume_lag_1'] / df['volume_lag_1'].rolling(window=21).mean()
+)
+
+print('Technical Indicators created: RSI, MACD, Bollinger Bands, ATR, '
+      'plus scale-free ATR and volume')
+
 
 ```
 
-    Technical Indicators created: RSI, MACD, Bollinger Bands, ATR
+    Technical Indicators created: RSI, MACD, Bollinger Bands, ATR, plus scale-free ATR and volume
     
 
 ## Technical indicators
@@ -441,6 +451,10 @@ explanatory feature rather than as a trading signal.
 - **ATR (14)** — Averages the true range over 14 days, accounting for
   intraday movement and overnight gaps. Captures market range volatility
   independently of price direction.
+- **Scale-free ATR and volume**: `atr_pct_14` divides ATR by the closing
+  price, and `volume_rel_21` is the log ratio of yesterday's volume to its
+  trailing 21-day average. ATR in points and raw volume drift with the
+  market's level over the sample; these versions stay comparable across it.
 
 RSI and MACD represent momentum and trend. Bollinger Bands and ATR capture
 changing volatility conditions. Both are relevant given the volatility
@@ -614,7 +628,7 @@ levels alone cannot provide.
 
 Markets do not maintain constant risk. Volatility transitions between calm and
 turbulent regimes — a pattern confirmed by the ARCH-LM test
-(LM = 1,786.70, 10 lags,
+(LM = 1,795.28, 10 lags,
 p < 0.001)
 in the diagnostics notebook. These features operationalise that finding
 by making regime state an explicit input rather than something a model must
@@ -636,10 +650,10 @@ df.isna().sum().sort_values(ascending=False)
 
 
 
-    vol_above_avg      280
     vol_rank_30        280
+    vol_above_avg      280
     high_vol_regime    280
-    momentum_60         59
+    vol_roll_60         59
     vol_ratio_10_60     59
                       ... 
     month_6              0
@@ -647,7 +661,7 @@ df.isna().sum().sort_values(ascending=False)
     month_12             0
     month_10             0
     month_11             0
-    Length: 64, dtype: int64
+    Length: 66, dtype: int64
 
 
 
@@ -665,79 +679,81 @@ print(f"Columns: {df_model.shape[1]}")
 df_model.info()
 ```
 
-    Rows: 6,412
-    Columns: 64
+    Rows: 6,441
+    Columns: 66
     <class 'pandas.DataFrame'>
-    DatetimeIndex: 6412 entries, 2001-02-13 to 2026-08-14
-    Data columns (total 64 columns):
+    DatetimeIndex: 6441 entries, 2001-02-13 to 2026-09-25
+    Data columns (total 66 columns):
      #   Column               Non-Null Count  Dtype  
     ---  ------               --------------  -----  
-     0   Open                 6412 non-null   float64
-     1   High                 6412 non-null   float64
-     2   Low                  6412 non-null   float64
-     3   Close                6412 non-null   float64
-     4   Volume               6412 non-null   int64  
-     5   log_returns          6412 non-null   float64
-     6   return_lag_1         6412 non-null   float64
-     7   return_lag_2         6412 non-null   float64
-     8   return_lag_3         6412 non-null   float64
-     9   return_lag_5         6412 non-null   float64
-     10  close_pct_lag_1      6412 non-null   float64
-     11  close_pct_lag_2      6412 non-null   float64
-     12  range_lag_1          6412 non-null   float64
-     13  volume_lag_1         6412 non-null   float64
-     14  vol_roll_5           6412 non-null   float64
-     15  return_mean_roll_5   6412 non-null   float64
-     16  momentum_5           6412 non-null   float64
-     17  vol_roll_10          6412 non-null   float64
-     18  return_mean_roll_10  6412 non-null   float64
-     19  momentum_10          6412 non-null   float64
-     20  vol_roll_21          6412 non-null   float64
-     21  return_mean_roll_21  6412 non-null   float64
-     22  momentum_21          6412 non-null   float64
-     23  vol_roll_30          6412 non-null   float64
-     24  return_mean_roll_30  6412 non-null   float64
-     25  momentum_30          6412 non-null   float64
-     26  vol_roll_60          6412 non-null   float64
-     27  return_mean_roll_60  6412 non-null   float64
-     28  momentum_60          6412 non-null   float64
-     29  rsi_14               6412 non-null   float64
-     30  macd                 6412 non-null   float64
-     31  macd_signal          6412 non-null   float64
-     32  macd_hist            6412 non-null   float64
-     33  bb_middle            6412 non-null   float64
-     34  bb_std               6412 non-null   float64
-     35  bb_upper             6412 non-null   float64
-     36  bb_lower             6412 non-null   float64
-     37  bb_width             6412 non-null   float64
-     38  atr_14               6412 non-null   float64
-     39  day_of_week          6412 non-null   int32  
-     40  month                6412 non-null   int32  
-     41  quarter              6412 non-null   int32  
-     42  is_month_end         6412 non-null   int64  
-     43  is_quarter_end       6412 non-null   int64  
-     44  dow_1                6412 non-null   int64  
-     45  dow_2                6412 non-null   int64  
-     46  dow_3                6412 non-null   int64  
-     47  dow_4                6412 non-null   int64  
-     48  month_2              6412 non-null   int64  
-     49  month_3              6412 non-null   int64  
-     50  month_4              6412 non-null   int64  
-     51  month_5              6412 non-null   int64  
-     52  month_6              6412 non-null   int64  
-     53  month_7              6412 non-null   int64  
-     54  month_8              6412 non-null   int64  
-     55  month_9              6412 non-null   int64  
-     56  month_10             6412 non-null   int64  
-     57  month_11             6412 non-null   int64  
-     58  month_12             6412 non-null   int64  
-     59  vol_above_avg        6412 non-null   float64
-     60  vol_rank_30          6412 non-null   float64
-     61  high_vol_regime      6412 non-null   float64
-     62  vol_expansion        6412 non-null   float64
-     63  vol_ratio_10_60      6412 non-null   float64
-    dtypes: float64(43), int32(3), int64(18)
-    memory usage: 3.1 MB
+     0   Open                 6441 non-null   float64
+     1   High                 6441 non-null   float64
+     2   Low                  6441 non-null   float64
+     3   Close                6441 non-null   float64
+     4   Volume               6441 non-null   int64  
+     5   log_returns          6441 non-null   float64
+     6   return_lag_1         6441 non-null   float64
+     7   return_lag_2         6441 non-null   float64
+     8   return_lag_3         6441 non-null   float64
+     9   return_lag_5         6441 non-null   float64
+     10  close_pct_lag_1      6441 non-null   float64
+     11  close_pct_lag_2      6441 non-null   float64
+     12  range_lag_1          6441 non-null   float64
+     13  volume_lag_1         6441 non-null   float64
+     14  vol_roll_5           6441 non-null   float64
+     15  return_mean_roll_5   6441 non-null   float64
+     16  momentum_5           6441 non-null   float64
+     17  vol_roll_10          6441 non-null   float64
+     18  return_mean_roll_10  6441 non-null   float64
+     19  momentum_10          6441 non-null   float64
+     20  vol_roll_21          6441 non-null   float64
+     21  return_mean_roll_21  6441 non-null   float64
+     22  momentum_21          6441 non-null   float64
+     23  vol_roll_30          6441 non-null   float64
+     24  return_mean_roll_30  6441 non-null   float64
+     25  momentum_30          6441 non-null   float64
+     26  vol_roll_60          6441 non-null   float64
+     27  return_mean_roll_60  6441 non-null   float64
+     28  momentum_60          6441 non-null   float64
+     29  rsi_14               6441 non-null   float64
+     30  macd                 6441 non-null   float64
+     31  macd_signal          6441 non-null   float64
+     32  macd_hist            6441 non-null   float64
+     33  bb_middle            6441 non-null   float64
+     34  bb_std               6441 non-null   float64
+     35  bb_upper             6441 non-null   float64
+     36  bb_lower             6441 non-null   float64
+     37  bb_width             6441 non-null   float64
+     38  atr_14               6441 non-null   float64
+     39  atr_pct_14           6441 non-null   float64
+     40  volume_rel_21        6441 non-null   float64
+     41  day_of_week          6441 non-null   int32  
+     42  month                6441 non-null   int32  
+     43  quarter              6441 non-null   int32  
+     44  is_month_end         6441 non-null   int64  
+     45  is_quarter_end       6441 non-null   int64  
+     46  dow_1                6441 non-null   int64  
+     47  dow_2                6441 non-null   int64  
+     48  dow_3                6441 non-null   int64  
+     49  dow_4                6441 non-null   int64  
+     50  month_2              6441 non-null   int64  
+     51  month_3              6441 non-null   int64  
+     52  month_4              6441 non-null   int64  
+     53  month_5              6441 non-null   int64  
+     54  month_6              6441 non-null   int64  
+     55  month_7              6441 non-null   int64  
+     56  month_8              6441 non-null   int64  
+     57  month_9              6441 non-null   int64  
+     58  month_10             6441 non-null   int64  
+     59  month_11             6441 non-null   int64  
+     60  month_12             6441 non-null   int64  
+     61  vol_above_avg        6441 non-null   float64
+     62  vol_rank_30          6441 non-null   float64
+     63  high_vol_regime      6441 non-null   float64
+     64  vol_expansion        6441 non-null   float64
+     65  vol_ratio_10_60      6441 non-null   float64
+    dtypes: float64(45), int32(3), int64(18)
+    memory usage: 3.2 MB
     
 
 
@@ -761,12 +777,28 @@ df_model.to_parquet(
 )
 ```
 
-## ✅ Feature engineering summary
+
+```python
+# Warm-up cost of the rolling features, derived rather than stated.
+#
+# The binding constraint is identified from the NaN counts rather than asserted,
+# so the figure cannot drift if a window length changes.
+
+na_counts = df.isna().sum()
+rows_dropped = len(df) - len(df_model)
+binding_features = sorted(na_counts[na_counts == na_counts.max()].index)
+binding_list = ', '.join(f'`{f}`' for f in binding_features)
+dropped_pct = rows_dropped / len(df)
+discarded_start = df.index.min().date()
+discarded_end = df_model.index.min().date()
+
+display(Markdown(f"""
+## Feature engineering summary
 
 Five feature groups were constructed from the validated EDA output:
 
 1. **Lag features** — recent return history, price changes, intraday range,
-   and volume (lags 1–5 days)
+   and volume (lags 1 to 5 days)
 2. **Rolling statistics** — rolling volatility, mean returns, and
    price-to-moving-average momentum across 5 to 60-day windows
 3. **Technical indicators** — RSI, MACD, Bollinger Bands, ATR
@@ -780,6 +812,140 @@ the regime and rolling features. Weak directional dependence in returns shaped
 lag selection. Seasonal patterns in exploratory analysis justified the calendar
 features.
 
+The modelling frame contains {len(df_model):,} rows spanning
+{df_model.index.min().date()} to {df_model.index.max().date()},
+against {len(df):,} rows in the cleaned input. The next section explains the
+{rows_dropped} row difference.
+
+### Why the modelling sample starts later than the data
+
+Rolling features cannot be computed until their window is full, so every
+window length imposes a warm-up cost at the start of the series. The binding constraint is a group of three features — {binding_list} —
+each carrying {na_counts.max()} missing values: the volatility percentile rank is a 252-day
+rolling rank computed over 30-day rolling volatility, so it needs 30 sessions
+to produce its first input and a further 252 to rank it. Nothing before that
+point has a defined regime state.
+
+Dropping those rows costs {rows_dropped} observations, {dropped_pct:.1%} of the
+cleaned sample. The discarded window runs {discarded_start} to the session
+before {discarded_end}.
+
+**Why the rows are dropped rather than filled.** Three alternatives were
+considered and rejected. Forward-filling a percentile rank would carry a value
+backwards into a period where no ranking is possible, which invents a regime
+state rather than measuring one. Back-filling from later observations would
+place future information in the early sample, the leakage the walk-forward
+protocols downstream exist to prevent. Relaxing `min_periods` so the rank
+computes on a partial window would produce a figure that is not comparable
+across the series: a percentile among 50 observations and a percentile among
+252 are different quantities wearing the same column name, and any model
+trained on both would be reading a feature whose meaning shifts partway
+through.
+
+**What the truncation costs analytically.** The discarded window covers the
+onset of the dot-com decline, so no model in this project is fitted on that
+episode. The 2008 crisis and the 2020 crash both sit inside the retained
+sample, and NB01 computes drawdown on the full price series, which is why the
+maximum drawdown reported there is measured over a period the models never
+see. Anyone quoting that drawdown alongside a model result should be clear the
+two cover different windows.
+
+The loss is a fixed prefix rather than a random subset, so it introduces no
+selection on volatility state within the retained sample. That matters more
+than the row count: dropping 4% of observations chosen by date is a warm-up
+cost, whereas dropping 4% chosen by volatility level would bias every variance
+estimate that follows.
+
+**What inherits it.** `sp500_features.parquet` is the input to Notebooks 04,
+05 and 06, so the train/test split, the GARCH estimation sample, and the LSTM
+sequence construction all begin at {discarded_end} rather than
+{discarded_start}. A sample-size discrepancy between NB01 and any later
+notebook traces to this cell.
+
 The question now is whether these features improve forecasting accuracy,
 volatility prediction, and regime classification. That is tested in the
 modelling notebooks.
+"""))
+```
+
+
+
+## Feature engineering summary
+
+Five feature groups were constructed from the validated EDA output:
+
+1. **Lag features** — recent return history, price changes, intraday range,
+   and volume (lags 1 to 5 days)
+2. **Rolling statistics** — rolling volatility, mean returns, and
+   price-to-moving-average momentum across 5 to 60-day windows
+3. **Technical indicators** — RSI, MACD, Bollinger Bands, ATR
+4. **Calendar features** — day-of-week and month dummies, period-end flags
+5. **Volatility regime features** — percentile ranks, high-volatility flags,
+   expansion signals, short-to-medium-term volatility ratios
+
+Each group was built in response to something observed in the diagnostics
+notebook. Volatility clustering and conditional heteroskedasticity motivated
+the regime and rolling features. Weak directional dependence in returns shaped
+lag selection. Seasonal patterns in exploratory analysis justified the calendar
+features.
+
+The modelling frame contains 6,441 rows spanning
+2001-02-13 to 2026-09-25,
+against 6,721 rows in the cleaned input. The next section explains the
+280 row difference.
+
+### Why the modelling sample starts later than the data
+
+Rolling features cannot be computed until their window is full, so every
+window length imposes a warm-up cost at the start of the series. The binding constraint is a group of three features — `high_vol_regime`, `vol_above_avg`, `vol_rank_30` —
+each carrying 280 missing values: the volatility percentile rank is a 252-day
+rolling rank computed over 30-day rolling volatility, so it needs 30 sessions
+to produce its first input and a further 252 to rank it. Nothing before that
+point has a defined regime state.
+
+Dropping those rows costs 280 observations, 4.2% of the
+cleaned sample. The discarded window runs 2000-01-04 to the session
+before 2001-02-13.
+
+**Why the rows are dropped rather than filled.** Three alternatives were
+considered and rejected. Forward-filling a percentile rank would carry a value
+backwards into a period where no ranking is possible, which invents a regime
+state rather than measuring one. Back-filling from later observations would
+place future information in the early sample, the leakage the walk-forward
+protocols downstream exist to prevent. Relaxing `min_periods` so the rank
+computes on a partial window would produce a figure that is not comparable
+across the series: a percentile among 50 observations and a percentile among
+252 are different quantities wearing the same column name, and any model
+trained on both would be reading a feature whose meaning shifts partway
+through.
+
+**What the truncation costs analytically.** The discarded window covers the
+onset of the dot-com decline, so no model in this project is fitted on that
+episode. The 2008 crisis and the 2020 crash both sit inside the retained
+sample, and NB01 computes drawdown on the full price series, which is why the
+maximum drawdown reported there is measured over a period the models never
+see. Anyone quoting that drawdown alongside a model result should be clear the
+two cover different windows.
+
+The loss is a fixed prefix rather than a random subset, so it introduces no
+selection on volatility state within the retained sample. That matters more
+than the row count: dropping 4% of observations chosen by date is a warm-up
+cost, whereas dropping 4% chosen by volatility level would bias every variance
+estimate that follows.
+
+**What inherits it.** `sp500_features.parquet` is the input to Notebooks 04,
+05 and 06, so the train/test split, the GARCH estimation sample, and the LSTM
+sequence construction all begin at 2001-02-13 rather than
+2000-01-04. A sample-size discrepancy between NB01 and any later
+notebook traces to this cell.
+
+The question now is whether these features improve forecasting accuracy,
+volatility prediction, and regime classification. That is tested in the
+modelling notebooks.
+
+
+
+
+```python
+
+```

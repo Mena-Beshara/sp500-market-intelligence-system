@@ -1,0 +1,86 @@
+{
+  "as_of": "2026-09-25",
+  "model": "GJR-GARCH(1,1,1) Student-t",
+  "forecast": {
+    "sigma_daily": 0.006446032418042778,
+    "sigma_annualised": 0.10232759232720921,
+    "expected_abs_move": 0.005817705585223708,
+    "historical_percentile": 0.2496506753609688
+  },
+  "regime": {
+    "label": "Calm",
+    "multiplier": 1.0,
+    "distance_to_next_up": 2.1803475177703535e-05,
+    "distance_to_next_down": null,
+    "thresholds_ann": {
+      "calm_below": 0.10234939580238692,
+      "stress_above": 0.19352707677930853,
+      "crisis_above": 0.33757198321362436
+    }
+  },
+  "trend": {
+    "vol_1w_ago": 0.11055398026449981,
+    "vol_1m_ago": 0.11072463137070275,
+    "direction_1w": "falling",
+    "direction_1m": "falling"
+  },
+  "forecast_drivers": {
+    "persistence_share": 0.9551347145839919,
+    "shock_share": 0.0,
+    "leverage_active": false
+  },
+  "var": {
+    "daily_95": 0.009772262422524304,
+    "daily_99": 0.015847201469209378
+  },
+  "anomaly": {
+    "flag": 0,
+    "z_score": null
+  },
+  "validation": {
+    "forecast_bias_share": -0.192416235404335,
+    "mz_slope": 0.8502414997799714,
+    "pit_worst_coverage_gap": 0.00943952802359882,
+    "var95_breach_rate": 0.0631889458158671,
+    "var95_kupiec_p": 2.9520826074769246e-06,
+    "var95_verdict": "rejected",
+    "var99_breach_rate": 0.014438751746623195,
+    "var99_kupiec_p": 0.000786905051341269,
+    "var99_verdict": "rejected"
+  },
+  "monitoring": {
+    "overall": "BREACH",
+    "checks": [
+      {
+        "metric": "95% VaR breach rate",
+        "value": "6.32%",
+        "band": "Kupiec p > 0.05",
+        "status": "BREACH"
+      },
+      {
+        "metric": "99% VaR breach rate",
+        "value": "1.44%",
+        "band": "Kupiec p > 0.05",
+        "status": "BREACH"
+      },
+      {
+        "metric": "Forecast bias (share of mean |r|)",
+        "value": "-19.2%",
+        "band": "|bias| < 10%",
+        "status": "WATCH"
+      },
+      {
+        "metric": "Mincer-Zarnowitz slope",
+        "value": "0.850",
+        "band": "0.8 \u2013 1.2",
+        "status": "OK"
+      },
+      {
+        "metric": "Worst coverage gap (PIT)",
+        "value": "0.9%",
+        "band": "gap < 3%",
+        "status": "OK"
+      }
+    ]
+  }
+}
