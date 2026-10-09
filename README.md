@@ -1,381 +1,200 @@
-![S&P 500 Daily Log Returns vs 21-day Rolling Volatility](reports/figures/sp500_log_returns_with_vol.png)
+![S&P 500 daily log returns against 21-day rolling volatility](reports/figures/sp500_log_returns_with_vol.png)
 
-*Figure 1. Daily S&P 500 log returns and 21-day rolling volatility. The clustering of calm and turbulent periods motivates the shift from return forecasting to conditional volatility modelling.*
+*Daily S&P 500 log returns with 21-day rolling volatility. The shaded bands mark the 2008 financial crisis and the 2020 COVID crash. Calm and turbulent periods cluster, which is why this system forecasts volatility rather than direction.*
 
 # S&P 500 Market Intelligence System
 
-### A quantitative decision-support framework for systematic long-term investing
+*A quantitative decision-support system for S&P 500 market risk.*
 
-The project transforms historical and live S&P 500 market data into a structured daily Market Risk Report that helps evaluate portfolio risk before new capital is allocated. Rather than predicting market direction or generating trading signals, the system estimates market conditions through statistical analysis, volatility forecasting and market regime classification.
+The system exists to answer one question each week: given everything it knows today, what should I review before this week's allocation decision? It forecasts next-day volatility with a GJR-GARCH model, classifies the volatility regime, flags days the model did not expect, and combines all three in a Daily Market Risk Report that also tests its own forecasts against what happened. The report informs the decision. It does not make it, and the system produces no buy or sell signals.
 
-The objective is to complement investor judgement with a repeatable, evidence-based decision process.
-
----
+The work runs across eight sequential Jupyter notebooks with walk-forward evaluation. Every statistic in this README comes from the run on data as of 2026-09-25 and traces to `data/locked_metrics.json` or to an executed output in [`docs/`](docs/).
 
 ## Project snapshot
 
-* **Asset:** S&P 500 index (^GSPC)
-* **History analysed:** January 2000 to June 2026
-* **Observations:** 6,658 trading days at the latest data refresh
-* **Forecast target:** 1-day-ahead conditional volatility
-* **Primary modelling framework:** GARCH family
-* **Selected volatility model:** GJR-GARCH(1,1,1), Student's t innovations
-* **Validation:** walk-forward evaluation
+| Item | Detail |
+|---|---|
+| Asset | S&P 500 index (`^GSPC`), daily prices and volume from Yahoo Finance |
+| Sample | 2000-01-03 to 2026-09-25: 6,721 daily log returns, and a 6,441-row modelling frame from 2001-02-13 after feature warm-up |
+| Forecast target | Next-day volatility, scored against the absolute daily log return |
+| Production model | GJR-GARCH(1,1,1) with Student's t innovations, selected by AIC |
+| Evaluation | Walk-forward over the final 252 trading days, refit every 21 days on an expanding window |
+| Status | All eight notebooks executed. The production model fails its own VaR backtest, and a fix is in progress |
 
----
+## Current status
 
-## The system
+All eight notebooks have run in sequence on data as of 2026-09-25, and the system's own monitoring has flagged its production model. The parametric VaR fails the Kupiec backtest at both the 95% and 99% levels, so the monitoring status is BREACH, and under the project's stay-in-service rule a single BREACH pulls the model for investigation. The evidence suggests the symmetric Student's t understates the left tail: **87.5%** of the anomaly flags in NB07 are falls.
 
-```text
-Historical Market Data
-          │
-          ▼
-Data Validation
-          │
-          ▼
-Statistical Diagnostics
-          │
-          ▼
-Feature Engineering
-          │
-          ▼
-Volatility Forecasting
-          │
-          ▼
-Market Regime Classification
-          │
-          ▼
-Risk Intelligence
-          │
-          ▼
-Daily Market Risk Report
-          │
-          ▼
-Decision Log
-```
+The fix is in progress. The next release adds GJR-GARCH(1,1,1) with skewed Student's t innovations as a fifth candidate in NB05's AIC comparison, so any change of model follows the project's existing selection rule, and NB06 to NB08 will consume whichever specification NB05 selects. The next release also corrects the EWMA benchmark comparison. The current one scores the EWMA forecast as a raw standard deviation and the GARCH forecast as an expected absolute return, so I have left that comparison out of this README until the corrected version is published. Until then, every figure below describes the symmetric Student's t release.
 
-Every stage contributes to a single objective: producing a transparent, evidence-based assessment of current market risk.
+## What the system produces
 
-The output of each stage becomes the input to the next, so every figure in the final report is traceable back to raw market data.
-
----
-
-## Daily Market Risk Report
+NB08 refits the production model selected in NB05, classifies the regime, adds the anomaly flag from NB07 and assembles the Daily Market Risk Report, which it exports to [`reports/risk_report.json`](reports/risk_report.json). This excerpt is the report as of 2026-09-25:
 
 ```text
--------------------------------------------------
-S&P 500 Market Risk Report
--------------------------------------------------
+Daily Market Risk Report, as of 2026-09-25 (excerpt)
 
-Date:                  2026-07-01
-
-Forecast volatility:   23.8% annualised
-Expected daily move:   ±1.2%
-Historical percentile: 89th
-Market regime:         Stress
-95% Value at Risk:     -2.1%
-Anomaly detected:      No
-
-Risk summary
-
-Market volatility remains elevated relative to
-recent history. Although current conditions fall
-within the historical distribution, continued
-portfolio monitoring is recommended before the
-next trading session.
-
-Decision logged.
-
--------------------------------------------------
+Model                   GJR-GARCH(1,1,1), Student's t
+Next-day volatility     0.6446% daily, 10.23% annualised
+Historical percentile   25th
+Regime                  Calm, less than 0.01 percentage points below the Normal threshold
+Trend                   falling against 1 week ago and 1 month ago
+Daily VaR               0.9772% at 95%, 1.5847% at 99%
+Anomaly detected        No
+VaR backtest            rejected at 95% and at 99%
+Monitoring status       BREACH
+Allocation multiplier   1.0x (Calm)
 ```
 
-The report deliberately separates model outputs from investment decisions.
+The full report also splits the forecast into its GARCH terms and carries the calibration and monitoring checks. The weekly contribution is sized by the regime observed on the previous Friday, so the signal never uses the week it sizes. The investor also records the intended contribution in a decision log before opening the report, which makes the gap between intention and action measurable.
 
-The model estimates market conditions.
+## How the pipeline fits together
 
-The investor remains responsible for every portfolio decision.
+```mermaid
+flowchart LR
+    Y["Yahoo Finance ^GSPC"] --> N01["01 Data preparation"]
+    N01 --> N02["02 Diagnostics"]
+    N01 --> N03["03 Features"]
+    N02 --> N03
+    N03 --> N04["04 Return baselines"]
+    N03 --> N05["05 Volatility models"]
+    N03 --> N06["06 Deep learning"]
+    N05 --> N06
+    N01 --> N07["07 Anomaly detection"]
+    N05 --> N07
+    N03 --> N08["08 Risk report"]
+    N07 --> N08
+    N08 --> R["Daily Market Risk Report"]
+```
 
----
+| Notebook | Question it answers | Main output |
+|---|---|---|
+| [01 Data preparation and EDA](notebooks/01_data_preparation_eda.ipynb) | Is the price history complete and clean? | Log returns validated against the NYSE calendar, with drawdown and volatility history |
+| [02 Statistical diagnostics](notebooks/02_statistical_diagnostics.ipynb) | Are returns normal and independent, with constant variance? | Skewness, kurtosis, Jarque-Bera, ACF and PACF, Ljung-Box and ARCH-LM tests |
+| [03 Feature engineering](notebooks/03_feature_engineering.ipynb) | Which inputs follow from the diagnostics? | A 66-column modelling frame of lags, rolling statistics, technical indicators, calendar and regime features |
+| [04 Baseline forecasting](notebooks/04_Baseline_Forecasting_Models.ipynb) | Can classical models forecast daily returns? | ARIMA, SARIMA and Prophet against historical-mean, naive and zero-return benchmarks |
+| [05 Volatility forecasting](notebooks/05_volatility_forecasting.ipynb) | Can GARCH-family models forecast volatility? | Production specification by AIC, walk-forward evaluation and the regime classifier |
+| [06 Deep learning comparison](notebooks/06_deep_learning_comparison.ipynb) | Do LSTM or MLP networks beat GARCH? | A three-seed walk-forward on the same test window |
+| [07 Anomaly detection](notebooks/07_anomaly_detection.ipynb) | Which days surprised the model? | A daily anomaly flag and z-score |
+| [08 Risk intelligence output](notebooks/08_risk_intelligence_output.ipynb) | What should I review before this week's decision? | The Daily Market Risk Report, VaR backtest and monitoring status |
 
-## The problem
-
-Financial markets are noisy, non-linear and difficult to predict.
-
-Classical forecasting techniques often perform no better than simple benchmarks when applied to daily returns, yet market volatility exhibits persistent statistical structure through clustering and changing regimes.
-
-This project asks a different question.
-
-> **Can historical market data be transformed into interpretable risk information that supports a repeatable investment decision process?**
-
-Rather than attempting to predict direction, the project focuses on estimating uncertainty.
-
----
+The notebooks are referred to as NB01 to NB08 below. Each has a Markdown export in [`docs/`](docs/) with every executed output, readable without running anything. Data moves between notebooks as Parquet files and statistics through `data/locked_metrics.json`, one block per notebook. Notebook prose follows the same rule: statistics are rendered from live values with `display(Markdown(f"..."))`, so the text moves with the numbers on a rerun.
 
 ## Key findings
 
-Four results from the completed notebooks shape the system design.
+### Daily returns are stationary, fat-tailed and volatility-clustered
 
-* Daily S&P 500 returns are stationary but strongly non-Gaussian, with heavy tails and negative skew.
-* Volatility clustering is statistically significant and persists across decades of market history.
-* Classical return forecasting models (ARIMA, SARIMA and Prophet) showed no improvement over a Historical Mean benchmark under walk-forward validation.
-* The absence of directional edge is consistent with weak-form market efficiency. The predictable structure in daily data sits in conditional volatility, not in returns, which makes volatility the appropriate modelling target.
-* A GJR-GARCH(1,1,1) model with Student's t innovations reduced out-of-sample volatility forecast error by 30.2% against a persistence benchmark, confirming that conditional volatility carries exploitable structure.
+Across **6,721** daily log returns from 2000-01-04 to 2026-09-25, the ADF statistic of **-19.48** (p < **0.0001**, 18 lags) rejects a unit root. The distribution is far from normal: skewness **-0.3487**, excess kurtosis **10.6850** and Jarque-Bera **32,055.27** (p < **0.0001**). Engle's ARCH-LM test at 10 lags returns **1,795.28** (p < **0.0001**), so variance clusters, and that clustering is the structure the rest of the system models. The deepest drawdown reached **-56.78%** on 2009-03-09, and the largest one-day fall was a log return of **-12.77%** on 2020-03-16.
 
----
+### Return forecasts do not beat the historical mean
 
-## Why volatility instead of returns?
+On an 80/20 chronological split, with **1,289** test days from 2021-08-06 to 2026-09-25, ARIMA(1,0,1) scored an RMSE of **0.010616** against **0.010616** for the historical mean. The relative gap of **9.59e-06** sits below the 1e-4 margin NB04 sets for a tie. SARIMA(1,0,1)(1,0,1,5) at **0.010623**, Prophet at **0.010665** and a walk-forward ARIMA at **0.010665** did no better. I read this null result as consistent with weak-form efficiency, and it moved the forecasting target from returns to volatility.
 
-Forecasting market direction with ARIMA, SARIMA and Prophet did not outperform a simple Historical Mean benchmark under walk-forward evaluation.
+### GJR-GARCH beats the persistence benchmark
 
-Rather than introducing additional model complexity without evidential justification, the project shifted its modelling effort toward volatility, where the statistical diagnostics demonstrated persistent structure through conditional heteroskedasticity.
+NB05 fits four specifications in sequence, each changing one assumption: ARCH(1), GARCH(1,1) with Normal and then Student's t innovations, and GJR-GARCH(1,1,1) with Student's t. AIC selects the GJR model. Over the final 252 trading days (2025-09-25 to 2026-09-25), refit every 21 days on an expanding window, its RMSE of **0.005233** is **30.8%** below the persistence benchmark's **0.007562**, and a Diebold-Mariano test with Newey-West variance returns **5.519** (p < **0.0001**). GARCH forecasts a standard deviation, so each forecast is converted to an expected absolute return before it is scored against the absolute return.
 
-The project now estimates market risk rather than predicting returns.
+The asymmetry term is γ = **0.2033** (p < **0.0001**) while α sits at its lower bound of zero. That is a boundary solution, where standard errors lose their usual meaning; taken at face value, only negative shocks feed next-day variance through the shock term, an extreme form of the leverage effect. Persistence is **0.9827**, a shock half-life of roughly **40** trading days, and the Student's t has ν = **6.76** degrees of freedom. On the standardised residuals, ARCH-LM at 20 lags returns **18.44** (p = **0.5582**), so the model absorbs the clustering found in NB02.
 
----
+The regime classifier cuts the full-sample annualised conditional volatility at its 25th, 75th and 95th percentiles (**10.23%**, **19.35%** and **33.76%**) into Calm, Normal, Stress and Crisis. Validation checks that the labels land on the right episodes: **85%** of days in the COVID window (2020-02-15 to 2020-04-30) classify as Crisis, against 5% by construction, and **68%** of 2022 trading days classify as Stress or Crisis, against 25%.
 
-## Model selection philosophy
+### Neural networks do not beat GARCH on this data
 
-Models are introduced only when statistical evidence justifies additional complexity.
+NB06 runs an LSTM (32 units, 5,537 parameters) and a feed-forward MLP (64 hidden units, 13,569 parameters) through the same 252-day walk-forward, on ten features with a 21-day lookback, repeated over seeds 42, 43 and 44. No seed produced an LSTM that beat GARCH. LSTM RMSE ranged from **0.005389** to **0.005461**, a **1.3%** spread, against **0.005233** for GARCH, which has 5 parameters and returns the same coefficients on every fit. On the primary seed the LSTM trailed by **4.3%**, beyond the 1% materiality threshold, although the GARCH RMSE falls inside the LSTM's 95% block-bootstrap interval of **0.004577** to **0.006425**, so this window cannot separate the two statistically. The LSTM beat persistence by **27.8%** (Diebold-Mariano **5.932**, p < **0.0001**). The MLP did not (**0.007804** against **0.007562**; Diebold-Mariano p = **0.4750**).
 
-Each modelling stage begins with the simplest appropriate benchmark and increases complexity one assumption at a time, so the effect of each change is measured in isolation. Final selection rests on out-of-sample performance, residual diagnostics and information criteria rather than in-sample fit alone.
+I keep GARCH in production on point accuracy and on auditability: a forecast that moves when the pipeline is rerun on unchanged data has to be versioned and explained. An earlier version of this comparison produced a near-tie on one seed. Two of its inputs, ATR in index points and volume in shares, sat far outside their training range in the test window, so I replaced them with scale-free versions before the rerun, and I read the earlier near-tie as a product of those distorted inputs.
 
----
+### Anomaly flags measure model surprise
 
-## Current volatility modelling
+NB07 flags days whose standardised residual falls beyond a standardised Student's t cut-off, with ν taken from the NB05 production fit and the quantile scaled by `sqrt((nu - 2) / nu)`: **2.972** at 1% and **1.999** at 5%. At 1%, **56** of **6,721** days are flagged against **67** expected, and an exact binomial test does not reject the nominal rate (p = **0.1776**). At 5%, the count is **327** against **336** (p = **0.6343**). Only **3** of the 56 flags fall inside the three stress windows (the 2008 financial crisis, the COVID crash and the 2022 rate-hike onset), in line with the **4.8%** of trading days those windows cover (p = **0.7505**). The flag therefore measures model surprise, and crisis identification stays with the regime classifier. Of the 56 flags, **87.5%** are falls, which is where the evidence against the symmetric Student's t first appeared.
 
-Conditional heteroskedasticity, first identified in the statistical diagnostics, was reconfirmed on the modelling sample before any model was fitted. GARCH-family models were then built as a controlled ladder — ARCH(1), GARCH(1,1) under Normal and Student's t innovations, then GJR-GARCH — with each step changing exactly one assumption so any improvement is attributable to a specific modelling choice. Heavy-tailed innovations follow directly from the fat-tail diagnostics, and the asymmetric specification tests whether volatility responds more strongly to negative shocks, the leverage effect implied by the negative skew of daily returns.
+### The risk report audits itself, and the VaR fails
 
-Model selection is handled by information criteria through a winner-selection registry, so the regime classifier, risk signal and summary always inherit the best-supported specification rather than a hardcoded choice. Every volatility model is evaluated out of sample against a naive persistence benchmark under walk-forward validation, and the regime classifier is checked against two known stress periods: the 2020 COVID crash and the 2022 rate-hike year.
+NB08 refits the production model on the full sample, classifies the regime, computes parametric VaR and backtests it over **6,441** days. The 95% VaR was breached on **407** days against **322.1** expected, a rate of **6.32%** (Kupiec LR = **21.85**, p < **0.0001**). The 99% VaR was breached on **93** days against **64.4**, a rate of **1.44%** (LR = **11.27**, p = **0.0008**). Both levels reject, and the breaches run above the nominal rate, so the model understates downside risk. The monitoring section turns each validation metric into a stay-in-service band, and the result is the BREACH status described under [Current status](#current-status).
 
-The registry selected GJR-GARCH(1,1,1) with Student's t innovations. Over a 252-day walk-forward window it reduced forecast RMSE by 30.2% against the persistence benchmark (0.005103 versus 0.007315). An ARCH-LM test on the model's standardised residuals returned p = 0.39, so the conditional heteroskedasticity present in the raw returns was absorbed by the fitted model.
+## Allocation design
 
----
+The regime maps to a fixed multiplier on a weekly baseline contribution: Calm 1.0x, Normal 1.5x, Stress 2.0x and Crisis 2.5x. These are a policy choice fixed by design. I did not tune them against returns, and I make no claim here that they improve returns. NB08 section 13 simulates regime-aware against passive dollar-cost averaging, but it uses full-sample parameters and thresholds, so I treat it as an in-sample illustration that a later backtest will replace. That backtest, of multiplier schedules without look-ahead, is drafted and parked until the core project is finished.
 
-## Current capabilities
+## Design principles
 
-### Data ingestion and validation
-
-* Download historical S&P 500 market data
-* Validate data quality before analysis
-* Detect missing observations and duplicates
-* Verify trading calendar consistency
-* Export validated datasets for downstream modelling
-
-### Statistical diagnostics
-
-* Stationarity testing
-* Distribution analysis
-* Fat-tail analysis
-* Volatility clustering diagnostics
-* Drawdown analysis
-* Correlation structure
-* Risk metric calculation
-
-### Feature engineering
-
-* Log returns
-* Rolling volatility
-* Lagged features
-* Momentum features
-* Calendar variables
-* Bias-free feature construction
-
-### Direction forecasting
-
-* Historical Mean benchmark
-* ARIMA evaluation
-* SARIMA evaluation
-* Prophet evaluation
-* Walk-forward validation
-
-### Volatility forecasting
-
-* Realised volatility target construction
-* Naive persistence benchmark
-* ARCH and GARCH estimation under Normal and Student's t innovations
-* Asymmetric volatility response via GJR-GARCH
-* Model selection by information criteria
-* Walk-forward evaluation with scheduled refits
-* Residual diagnostics on standardised residuals
-* Volatility persistence and half-life interpretation
-
-### Market regime classification
-
-* Percentile-based regimes: Calm, Normal, Stress, Crisis
-* Historical validation against the 2020 COVID crash and the 2022 rate-hike period
-* Plain-language risk signal generation
-* Risk intelligence summary in both conditional volatility and expected daily move units
-
-### Risk intelligence (planned)
-
-* Daily Market Risk Report generation
-* Anomaly alert integration
-* Decision logging
-* Portfolio monitoring metrics
-
----
-
-## Research workflow
-
-| Stage                    | Objective                        | Status |
-| ------------------------ | -------------------------------- | :----: |
-| Data validation          | Validate raw market data         |   ✅   |
-| Statistical diagnostics  | Characterise return behaviour    |   ✅   |
-| Feature engineering      | Create forecasting features      |   ✅   |
-| Direction forecasting    | Evaluate predictive edge         |   ✅   |
-| Volatility modelling     | Forecast conditional volatility  |   🔬   |
-| Deep learning comparison | Compare against GARCH            |   📋   |
-| Anomaly detection        | Detect structural market changes |   📋   |
-| Risk intelligence        | Generate Market Risk Report      |   📋   |
-
-Status: ✅ complete · 🔬 model selected, final review · 📋 planned
-
----
-
-## Research principles
-
-* Data quality is verified before modelling.
-* Look-ahead bias is explicitly prevented.
-* Simple benchmarks are established before complex models.
-* Complexity is added only when it improves out-of-sample performance.
-* Walk-forward validation is preferred over random train-test splits.
-* Every stage is reproducible and suitable for technical review.
-
----
-
-## Technology stack
-
-### Languages
-
-* Python 3.11
-
-### Data
-
-* pandas
-* NumPy
-* Parquet
-* yfinance
-
-### Statistical modelling
-
-* statsmodels
-* SciPy
-* arch
-
-### Visualisation
-
-* Plotly
-
-### Development
-
-* Jupyter Notebook
-* Conda
-* environment.yml
-
----
+- **One source for every statistic.** Notebooks write statistics to `data/locked_metrics.json` and read them back by key, and prose renders from those values, so the text updates with every rerun.
+- **Data checked against the exchange.** NB01 compares every session with the NYSE calendar from `pandas_market_calendars`, drops an incomplete final session and removes a zero-volume session on 2023-05-24.
+- **Benchmarks before models.** Every model faces a naive baseline on the same test window, and null results are reported as findings.
+- **Uncertainty measured directly.** Diebold-Mariano tests with Newey-West variance, block-bootstrap intervals, three seeds for the networks and a 1% materiality threshold for ties.
+- **A system that audits itself.** Calibration checks, a VaR backtest and monitoring bands decide whether the production model stays in service.
 
 ## Repository structure
 
 ```text
 sp500-market-intelligence-system/
-│
 ├── notebooks/
-│   ├── 01_eda.ipynb
+│   ├── 01_data_preparation_eda.ipynb
 │   ├── 02_statistical_diagnostics.ipynb
 │   ├── 03_feature_engineering.ipynb
 │   ├── 04_Baseline_Forecasting_Models.ipynb
-│   └── 05_volatility_forecasting_garch.ipynb
-│
+│   ├── 05_volatility_forecasting.ipynb
+│   ├── 06_deep_learning_comparison.ipynb
+│   ├── 07_anomaly_detection.ipynb
+│   └── 08_risk_intelligence_output.ipynb
+├── docs/                         Markdown export of each notebook, with outputs
 ├── data/
-│   ├── sp500_cleaned.csv
-│   ├── sp500_cleaned.parquet
-│   ├── sp500_eda_enriched.csv
-│   ├── sp500_eda_enriched.parquet
-│   └── sp500_features.parquet
-│
+│   ├── locked_metrics.json       every cited statistic, one block per notebook
+│   ├── sp500_cleaned.parquet     validated prices and log returns, also as .csv
+│   ├── sp500_eda_enriched.parquet  EDA columns from NB01, also as .csv
+│   ├── sp500_features.parquet    modelling frame from NB03
+│   ├── nb06_predictions.parquet
+│   ├── nb07_anomalies.parquet
+│   └── nb08_risk_report.parquet
 ├── reports/
-│   └── figures/
-│
-├── src/                # planned
-├── tests/              # planned
-│
+│   ├── figures/                  static charts exported by NB01 and NB02
+│   └── risk_report.json          the Daily Market Risk Report as data
 ├── environment.yml
 └── README.md
 ```
 
-The repository currently focuses on the research phase. Notebooks 06 to 08 (deep learning comparison, anomaly detection, risk intelligence) are scheduled next and will be added under `notebooks/` as they are completed. Once the analytical work is complete, the reusable logic will be modularised into a production-ready Python package under `src/` with unit tests under `tests/`.
+## Reproducing the results
 
----
+```bash
+git clone https://github.com/Mena-Beshara/sp500-market-intelligence-system.git
+cd sp500-market-intelligence-system
+conda env create -f environment.yml
+conda activate sp500-intel
+```
+
+Run the notebooks in order from 01 to 08, restarting the kernel before each. Only NB01 downloads data, and it fixes the as-of date at the last complete NYSE session, so a fresh run uses newer data and every figure in `data/locked_metrics.json` will move. This README reports the run on data as of 2026-09-25. NB06 is the slow step: its three-seed walk-forward took **2,511** seconds on CPU in that run. NB06, NB07 and NB08 read parameters that NB05 exports, so rerun every notebook after the one you change. To execute a notebook without opening it:
+
+```bash
+jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=-1 notebooks/06_deep_learning_comparison.ipynb
+```
+
+## Technology
+
+| Area | Tools |
+|---|---|
+| Data | yfinance, pandas, NumPy, pyarrow (Parquet), pandas_market_calendars |
+| Statistics and forecasting | SciPy, statsmodels, arch, Prophet |
+| Machine learning | scikit-learn, TensorFlow 2.21.0 (CPU) |
+| Visualisation | Plotly, with kaleido for static export |
+| Environment | Python 3.11, Conda, Jupyter |
+
+## Limitations
+
+- The system covers one asset at daily frequency. Other assets and portfolio construction are out of scope.
+- Walk-forward results come from a single 252-day test window, which is one draw from one market regime.
+- Regime thresholds, the VaR backtest, the calibration checks and the anomaly flags use full-sample parameters. They validate the model's specification, not a live deployment record.
+- The absolute daily return is a noisy proxy for latent volatility, and every forecast score inherits that noise.
+- Forecasts come from history and cannot anticipate events without precedent in the sample.
 
 ## Roadmap
 
-### Research phase
+- Publish the skewed Student's t release: NB05 to NB08 rerun, a refreshed `locked_metrics.json` and report, and the corrected EWMA comparison.
+- Present the allocation multipliers in NB08 as a fixed policy choice, and relabel or remove the in-sample comparison in section 13.
+- Move reusable logic into a `src/` package (data ingestion and validation, feature engineering, GARCH fitting, regime classification and signal generation) with unit tests in `tests/`.
+- After the core project: the multiplier-schedule backtest in its own notebook, outside the 01 to 08 pipeline, with GARCH parameters and regime cut-offs estimated only from data available at each date.
 
-* ✅ Data validation
-* ✅ Statistical diagnostics
-* ✅ Feature engineering
-* ✅ Direction forecasting
-* 🔬 Volatility forecasting (model selected, final review)
-* 📋 Deep learning comparison
-* 📋 Anomaly detection
-* 📋 Risk intelligence system
+## Disclaimer
 
-### Production phase
+This repository is a portfolio project for education and research. Nothing in it constitutes financial or investment advice. The system provides quantitative decision-support information only, and every investment decision remains the investor's responsibility.
 
-* Modular `src` package
-* Daily report generation
-* Unit testing
-* Model Card
-* Automated execution
-* Configuration management
-
-### Future extensions
-
-* HAR-RV benchmark as an additional realised volatility comparison
-* Rolling GARCH parameter stability monitoring for structural break detection
-* VIX as a forward-looking input to the regime classifier
-
----
-
-## Known limitations
-
-The system estimates market risk rather than market direction.
-
-Forecasts are derived from historical observations and cannot anticipate unforeseen macroeconomic or geopolitical events.
-
-Market regime thresholds are percentile-based and may require recalibration as market structure evolves.
-
-Realised volatility is an observable proxy for latent volatility, so forecast evaluation inherits the measurement noise of that proxy.
-
-The current implementation is designed around SPY as a representative long-term equity position and should not be assumed to generalise to other asset classes without additional validation.
-
-The project produces decision-support information only. It does not generate trading signals or investment advice.
-
----
-
-## Why this project
-
-Many market forecasting projects stop once a prediction has been generated.
-
-This project continues one step further.
-
-It investigates whether statistical models can support a disciplined investment process rather than simply producing forecasts. Every model output feeds into a structured Market Risk Report, every investment decision is logged separately from the model output, and the framework can be evaluated retrospectively to determine whether the decision process improves consistency over time.
-
-The emphasis is not on predicting the future. It is on building a transparent, repeatable and auditable decision-support system for long-term investing.
-
-It also demonstrates a complete quantitative workflow:
-
-* validating financial data,
-* performing statistical diagnostics,
-* engineering forecasting features,
-* evaluating competing models,
-* selecting models based on evidence,
-* translating model outputs into business decisions.
-
----
-
-## License
-
-This repository is intended for educational and portfolio purposes.
-
-Nothing in this repository constitutes financial or investment advice. The Market Intelligence System provides quantitative decision-support information only, and all investment decisions remain the responsibility of the investor.
+Built by Mena Beshara. [LinkedIn](https://www.linkedin.com/in/mena-beshara) · [GitHub](https://github.com/Mena-Beshara)
