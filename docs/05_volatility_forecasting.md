@@ -15,6 +15,7 @@ import plotly.io as pio
 import warnings
 
 from arch import arch_model
+from arch.univariate import SkewStudent
 from statsmodels.stats.diagnostic import het_arch, acorr_ljungbox
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error, mean_squared_error
 from IPython.display import display, Markdown
@@ -23,6 +24,7 @@ from pathlib import Path
 from scipy import stats
 from scipy.special import gamma as gamma_fn
 from scipy.stats import t as t_dist
+from scipy.stats import binomtest
 
 # Narrow the warnings filter: the blanket filterwarnings('ignore') used
 # before hid genuine fit diagnostics, including boundary warnings the arch
@@ -168,7 +170,7 @@ df.shape
 
 
 
-    (6441, 64)
+    (6441, 66)
 
 
 
@@ -368,7 +370,7 @@ df.head()
     </tr>
   </tbody>
 </table>
-<p>5 rows × 64 columns</p>
+<p>5 rows × 66 columns</p>
 </div>
 
 
@@ -442,14 +444,17 @@ benchmark['persistence_forecast'] = benchmark['realised_vol'].shift(1)
 
 # ── Benchmark 2: EWMA (RiskMetrics, lambda = 0.94) ──
 # The industry-standard naive volatility forecast. Conditional variance is an
-# exponentially weighted moving average of squared returns, with no refit and
-# no distributional assumption. This is a much tougher bar than persistence,
-# because EWMA already models smooth decay — the same structural advantage
-# GARCH formalises with estimated parameters.
+# exponentially weighted moving average of squared returns, with a fixed decay
+# and nothing estimated. Its square root is a conditional standard deviation,
+# sigma, not an expected absolute return. RiskMetrics assumes conditionally
+# Normal returns, so sigma converts to an expected absolute return with the
+# Normal factor E|Z| = sqrt(2/pi). Every sigma forecaster in this notebook is
+# converted before it is scored against |r|.
 ewma_lambda = 0.94
+ewma_abs_factor = np.sqrt(2 / np.pi)
 sq_returns = returns ** 2
 ewma_var = sq_returns.ewm(alpha=(1 - ewma_lambda), adjust=False).mean()
-benchmark['ewma_forecast'] = np.sqrt(ewma_var.shift(1))  # E[sigma] as sqrt(variance)
+benchmark['ewma_forecast'] = np.sqrt(ewma_var.shift(1)) * ewma_abs_factor
 
 benchmark = benchmark.dropna()
 
@@ -474,7 +479,7 @@ print(f'EWMA (λ={ewma_lambda})       RMSE: {rmse_ewma:.6f}  MAE: {mae_ewma:.6f}
 ```
 
     Persistence Benchmark  RMSE: 0.010770  MAE: 0.007109
-    EWMA (λ=0.94)       RMSE: 0.008385  MAE: 0.006059
+    EWMA (λ=0.94)       RMSE: 0.007874  MAE: 0.005364
     
 
 
@@ -491,9 +496,12 @@ RMSE = {rmse_persistence:.6f} and MAE = {mae_persistence:.6f}.
 
 **EWMA (RiskMetrics, λ = {ewma_lambda})** is the industry-standard naive
 forecast. Conditional variance is an exponentially weighted moving average of
-squared returns — the same smooth-decay structure GARCH formalises, but with
-a fixed decay parameter and no distributional assumption. Over the full
-sample it produced RMSE = {rmse_ewma:.6f} and MAE = {mae_ewma:.6f}.
+squared returns, the same smooth-decay structure GARCH formalises, but with a
+fixed decay parameter and nothing estimated. Its output is a sigma, so it is
+converted to an expected absolute return with the Normal factor its
+RiskMetrics design assumes (sqrt(2/pi) ≈ {ewma_abs_factor:.4f}), the same
+units every other forecaster is scored in. Over the full sample it produced
+RMSE = {rmse_ewma:.6f} and MAE = {mae_ewma:.6f}.
 
 EWMA is the harder benchmark. Persistence copies a single noisy observation
 forward; EWMA smooths the history, so its forecast is less volatile and
@@ -517,9 +525,12 @@ RMSE = 0.010770 and MAE = 0.007109.
 
 **EWMA (RiskMetrics, λ = 0.94)** is the industry-standard naive
 forecast. Conditional variance is an exponentially weighted moving average of
-squared returns — the same smooth-decay structure GARCH formalises, but with
-a fixed decay parameter and no distributional assumption. Over the full
-sample it produced RMSE = 0.008385 and MAE = 0.006059.
+squared returns, the same smooth-decay structure GARCH formalises, but with a
+fixed decay parameter and nothing estimated. Its output is a sigma, so it is
+converted to an expected absolute return with the Normal factor its
+RiskMetrics design assumes (sqrt(2/pi) ≈ 0.7979), the same
+units every other forecaster is scored in. Over the full sample it produced
+RMSE = 0.007874 and MAE = 0.005364.
 
 EWMA is the harder benchmark. Persistence copies a single noisy observation
 forward; EWMA smooths the history, so its forecast is less volatile and
@@ -614,9 +625,12 @@ observations. The two questions get different answers often enough that this
 notebook keeps them in separate sections with separate metrics:
 log-likelihood, AIC, and BIC here; walk-forward RMSE and MAE there.
 
-Four specifications are fitted in a controlled sequence, each changing one
+Five specifications are fitted in a controlled sequence, each changing one
 thing: ARCH(1) tests the mechanism, GARCH(1,1) adds memory, Student's t fixes
-the tails, and GJR-GARCH tests asymmetry. Each model registers itself in a
+the tails, GJR-GARCH tests asymmetry in how variance responds to shocks, and a
+skewed Student's t tests asymmetry in the shocks themselves.
+
+Each model registers itself in a
 shared results table immediately after fitting, and the table is re-displayed
 after every registration, so the standings are visible at each step rather
 than revealed once at the end. The AIC winner advances to forecast
@@ -779,8 +793,8 @@ print(res_arch1.summary())
     Distribution:                  Normal   AIC:                           19630.3
     Method:            Maximum Likelihood   BIC:                           19650.6
                                             No. Observations:                 6441
-    Date:                Tue, Sep 29 2026   Df Residuals:                     6440
-    Time:                        16:58:30   Df Model:                            1
+    Date:                Wed, Oct 07 2026   Df Residuals:                     6440
+    Time:                        10:45:06   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
@@ -997,8 +1011,8 @@ print(res_garch11.summary())
     Distribution:                  Normal   AIC:                           17487.0
     Method:            Maximum Likelihood   BIC:                           17514.1
                                             No. Observations:                 6441
-    Date:                Tue, Sep 29 2026   Df Residuals:                     6440
-    Time:                        16:58:31   Df Model:                            1
+    Date:                Wed, Oct 07 2026   Df Residuals:                     6440
+    Time:                        10:45:06   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
@@ -1261,8 +1275,8 @@ print(res_garch11_t.summary())
     Distribution:      Standardized Student's t   AIC:                           17180.7
     Method:                  Maximum Likelihood   BIC:                           17214.5
                                                   No. Observations:                 6441
-    Date:                      Tue, Sep 29 2026   Df Residuals:                     6440
-    Time:                              16:58:31   Df Model:                            1
+    Date:                      Wed, Oct 07 2026   Df Residuals:                     6440
+    Time:                              10:45:07   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
@@ -1591,8 +1605,8 @@ print(res_gjr.summary())
     Distribution:      Standardized Student's t   AIC:                           16964.5
     Method:                  Maximum Likelihood   BIC:                           17005.1
                                                   No. Observations:                 6441
-    Date:                      Tue, Sep 29 2026   Df Residuals:                     6440
-    Time:                              16:58:31   Df Model:                            1
+    Date:                      Wed, Oct 07 2026   Df Residuals:                     6440
+    Time:                              10:45:07   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
@@ -1796,6 +1810,220 @@ confirming no residual serial dependence in variance.
 
 
 
+#### Asymmetric shocks: skewed Student's t innovations
+
+The GJR equation lets negative shocks raise next-day variance more than
+positive ones, but its Student's t still treats the shocks themselves as
+symmetric: a fall and a rise of the same standardised size are equally
+likely. The next cell tests that assumption on the symmetric fit above.
+
+This candidate keeps the GJR variance equation and replaces the Student's t
+with Hansen's skewed Student's t, which adds one parameter, lambda, for
+asymmetry. A negative lambda means large falls are more likely than large
+rises of the same size. It was added in October 2026, after NB08's in-sample
+VaR backtest rejected the symmetric specification at both levels, so it
+enters the same AIC comparison as every other specification rather than
+replacing the incumbent by hand.
+
+One accounting change follows. Under a skewed distribution, the GJR
+indicator is active on a share of days equal to P(Z < 0), which need not be
+one half, so persistence becomes alpha + gamma·P(Z < 0) + beta.
+
+
+```python
+# Under a symmetric distribution, residuals beyond the 0.5% cutoff on each
+# side should split evenly. Count each side in the symmetric fit above.
+z_sym = res_gjr.std_resid.dropna()
+tail_cut = float(res_gjr.model.distribution.ppf(0.995, res_gjr.params[['nu']]))
+n_tail_low = int((z_sym < -tail_cut).sum())
+n_tail_high = int((z_sym > tail_cut).sum())
+n_tail_expected = 0.005 * len(z_sym)
+split_p = binomtest(n_tail_low, n_tail_low + n_tail_high, 0.5).pvalue
+
+if split_p < 0.05:
+    side = 'falling' if n_tail_low > n_tail_high else 'rising'
+    tail_lean_text = (f"The extreme shocks lean to the {side} side, which a "
+                      "symmetric distribution cannot represent.")
+else:
+    tail_lean_text = "This sample shows no significant lean in the extreme shocks."
+
+display(Markdown(f"""
+In the symmetric fit, {n_tail_low} standardised residuals fall below the lower
+0.5% cutoff and {n_tail_high} rise above the upper one, with the cutoffs at
+±{tail_cut:.3f} and {n_tail_expected:.1f} days expected on each side. An exact
+binomial test of an even split gives p = {split_p:.2e}. {tail_lean_text}
+"""))
+```
+
+
+
+In the symmetric fit, 49 standardised residuals fall below the lower
+0.5% cutoff and 6 rise above the upper one, with the cutoffs at
+±2.972 and 32.2 days expected on each side. An exact
+binomial test of an even split gives p = 1.82e-09. The extreme shocks lean to the falling side, which a symmetric distribution cannot represent.
+
+
+
+
+```python
+spec_gjr_skewt = dict(mean='Constant', vol='GARCH', p=1, o=1, q=1, dist='skewt')
+res_gjr_skewt = arch_model(returns_scaled, **spec_gjr_skewt).fit(disp='off')
+print(res_gjr_skewt.summary())
+```
+
+                             Constant Mean - GJR-GARCH Model Results                         
+    =========================================================================================
+    Dep. Variable:                       log_returns   R-squared:                       0.000
+    Mean Model:                        Constant Mean   Adj. R-squared:                  0.000
+    Vol Model:                             GJR-GARCH   Log-Likelihood:               -8438.20
+    Distribution:      Standardized Skew Student's t   AIC:                           16890.4
+    Method:                       Maximum Likelihood   BIC:                           16937.8
+                                                       No. Observations:                 6441
+    Date:                           Wed, Oct 07 2026   Df Residuals:                     6440
+    Time:                                   10:45:07   Df Model:                            1
+                                     Mean Model                                 
+    ============================================================================
+                     coef    std err          t      P>|t|      95.0% Conf. Int.
+    ----------------------------------------------------------------------------
+    mu             0.0278  9.613e-03      2.897  3.767e-03 [9.008e-03,4.669e-02]
+                                   Volatility Model                              
+    =============================================================================
+                     coef    std err          t      P>|t|       95.0% Conf. Int.
+    -----------------------------------------------------------------------------
+    omega          0.0198  3.281e-03      6.028  1.659e-09  [1.335e-02,2.621e-02]
+    alpha[1]       0.0000  8.805e-03      0.000      1.000 [-1.726e-02,1.726e-02]
+    gamma[1]       0.2089  2.148e-02      9.723  2.414e-22      [  0.167,  0.251]
+    beta[1]        0.8801  1.269e-02     69.378      0.000      [  0.855,  0.905]
+                                  Distribution                              
+    ========================================================================
+                     coef    std err          t      P>|t|  95.0% Conf. Int.
+    ------------------------------------------------------------------------
+    eta            7.4861      0.702     10.671  1.395e-26 [  6.111,  8.861]
+    lambda        -0.1496  1.617e-02     -9.246  2.335e-20 [ -0.181, -0.118]
+    ========================================================================
+    
+    Covariance estimator: robust
+    
+
+
+```python
+register_model("GJR-GARCH(1,1,1) — skewed Student's t", res_gjr_skewt, spec_gjr_skewt)
+show_model_table()
+```
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>log_likelihood</th>
+      <th>aic</th>
+      <th>bic</th>
+      <th>n_params</th>
+      <th>delta_aic</th>
+      <th>delta_ll</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>GJR-GARCH(1,1,1) — skewed Student's t</th>
+      <td>-8438.198075</td>
+      <td>16890.396149</td>
+      <td>16937.789223</td>
+      <td>7.0</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>GJR-GARCH(1,1,1) — Student's t</th>
+      <td>-8476.235699</td>
+      <td>16964.471398</td>
+      <td>17005.094033</td>
+      <td>6.0</td>
+      <td>74.075249</td>
+      <td>-38.037625</td>
+    </tr>
+    <tr>
+      <th>GARCH(1,1) — Student's t</th>
+      <td>-8585.331982</td>
+      <td>17180.663963</td>
+      <td>17214.516159</td>
+      <td>5.0</td>
+      <td>290.267814</td>
+      <td>-147.133907</td>
+    </tr>
+    <tr>
+      <th>GARCH(1,1) — Normal</th>
+      <td>-8739.512405</td>
+      <td>17487.024811</td>
+      <td>17514.106567</td>
+      <td>4.0</td>
+      <td>596.628662</td>
+      <td>-301.314331</td>
+    </tr>
+    <tr>
+      <th>ARCH(1) — Normal</th>
+      <td>-9812.146411</td>
+      <td>19630.292822</td>
+      <td>19650.604140</td>
+      <td>3.0</td>
+      <td>2739.896673</td>
+      <td>-1373.948337</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+```python
+lam = res_gjr_skewt.params['lambda']
+lam_p = res_gjr_skewt.pvalues['lambda']
+d_aic = res_gjr.aic - res_gjr_skewt.aic
+
+if lam_p >= 0.05:
+    skew_text = "not significantly different from zero, so the shocks show no clear lean"
+elif lam < 0:
+    skew_text = ("a lean to the left: large falls are more likely than large "
+                 "rises of the same size")
+else:
+    skew_text = ("a lean to the right: large rises are more likely than large "
+                 "falls of the same size")
+aic_winner = 'skewed' if d_aic > 0 else 'symmetric'
+
+display(Markdown(f"""
+The skew parameter is lambda = {lam:.4f} (p = {lam_p:.2e}), {skew_text}.
+Against the symmetric GJR specification, AIC differs by {abs(d_aic):,.2f}
+points in favour of the {aic_winner} model. By the Burnham and Anderson
+guideline, a gap above 10 leaves essentially no support for the trailing
+model.
+"""))
+```
+
+
+
+The skew parameter is lambda = -0.1496 (p = 2.34e-20), a lean to the left: large falls are more likely than large rises of the same size.
+Against the symmetric GJR specification, AIC differs by 74.08
+points in favour of the skewed model. By the Burnham and Anderson
+guideline, a gap above 10 leaves essentially no support for the trailing
+model.
+
+
+
 ### 5.6 In-sample comparison and model selection
 
 
@@ -1807,21 +2035,27 @@ best_label = comparison.index[0]
 best_spec = model_specs[best_label]
 best_res = model_objects[best_label]
 
+# The runner-up is whichever specification ranks second by AIC, so the label
+# stays correct on every rerun. It sits the out-of-sample test in section 6.
+runnerup_label = comparison.index[1]
+
 print(f'Selected specification: {best_label}')
+print(f'Runner-up:              {runnerup_label}')
 
 display(Markdown(f"""
-The table ranks all four fits by AIC; **{best_label}** leads and advances to
-forecast evaluation, the regime classifier, and the risk summary. Two caveats
-keep this honest. These are in-sample statistics computed on the same data
-the models were fitted to, and the AIC comparison is valid only because every
-model was fitted on the same scaled series, so the rescaling constant cancels.
-The delta columns restate the ranking in relative terms: delta_aic is each
-model's AIC distance from the leader, and by the Burnham–Anderson guideline a
-distance above 10 means essentially no support for the trailing model.
+The table ranks all {len(comparison)} fits by AIC; **{best_label}** leads and
+advances to forecast evaluation, the regime classifier, and the risk summary,
+with **{runnerup_label}** in second place. Two caveats keep this honest. These
+are in-sample statistics computed on the same data the models were fitted to,
+and the AIC comparison is valid only because every model was fitted on the
+same scaled series, so the rescaling constant cancels. The delta columns
+restate the ranking in relative terms: delta_aic is each model's AIC distance
+from the leader, and by the Burnham and Anderson guideline a distance above
+10 means essentially no support for the trailing model.
 
 In-sample fit does not establish forecasting ability. That question belongs
-to the next section, which evaluates the winning specification against the
-persistence benchmark on data neither has seen.
+to the next section, which evaluates the winning specification against both
+benchmarks on data none of them has seen.
 """))
 ```
 
@@ -1854,13 +2088,22 @@ persistence benchmark on data neither has seen.
   </thead>
   <tbody>
     <tr>
+      <th>GJR-GARCH(1,1,1) — skewed Student's t</th>
+      <td>-8438.198075</td>
+      <td>16890.396149</td>
+      <td>16937.789223</td>
+      <td>7.0</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
       <th>GJR-GARCH(1,1,1) — Student's t</th>
       <td>-8476.235699</td>
       <td>16964.471398</td>
       <td>17005.094033</td>
       <td>6.0</td>
-      <td>0.000000</td>
-      <td>0.000000</td>
+      <td>74.075249</td>
+      <td>-38.037625</td>
     </tr>
     <tr>
       <th>GARCH(1,1) — Student's t</th>
@@ -1868,8 +2111,8 @@ persistence benchmark on data neither has seen.
       <td>17180.663963</td>
       <td>17214.516159</td>
       <td>5.0</td>
-      <td>216.192565</td>
-      <td>-109.096282</td>
+      <td>290.267814</td>
+      <td>-147.133907</td>
     </tr>
     <tr>
       <th>GARCH(1,1) — Normal</th>
@@ -1877,8 +2120,8 @@ persistence benchmark on data neither has seen.
       <td>17487.024811</td>
       <td>17514.106567</td>
       <td>4.0</td>
-      <td>522.553413</td>
-      <td>-263.276706</td>
+      <td>596.628662</td>
+      <td>-301.314331</td>
     </tr>
     <tr>
       <th>ARCH(1) — Normal</th>
@@ -1886,31 +2129,33 @@ persistence benchmark on data neither has seen.
       <td>19630.292822</td>
       <td>19650.604140</td>
       <td>3.0</td>
-      <td>2665.821424</td>
-      <td>-1335.910712</td>
+      <td>2739.896673</td>
+      <td>-1373.948337</td>
     </tr>
   </tbody>
 </table>
 </div>
 
 
-    Selected specification: GJR-GARCH(1,1,1) — Student's t
+    Selected specification: GJR-GARCH(1,1,1) — skewed Student's t
+    Runner-up:              GJR-GARCH(1,1,1) — Student's t
     
 
 
 
-The table ranks all four fits by AIC; **GJR-GARCH(1,1,1) — Student's t** leads and advances to
-forecast evaluation, the regime classifier, and the risk summary. Two caveats
-keep this honest. These are in-sample statistics computed on the same data
-the models were fitted to, and the AIC comparison is valid only because every
-model was fitted on the same scaled series, so the rescaling constant cancels.
-The delta columns restate the ranking in relative terms: delta_aic is each
-model's AIC distance from the leader, and by the Burnham–Anderson guideline a
-distance above 10 means essentially no support for the trailing model.
+The table ranks all 5 fits by AIC; **GJR-GARCH(1,1,1) — skewed Student's t** leads and
+advances to forecast evaluation, the regime classifier, and the risk summary,
+with **GJR-GARCH(1,1,1) — Student's t** in second place. Two caveats keep this honest. These
+are in-sample statistics computed on the same data the models were fitted to,
+and the AIC comparison is valid only because every model was fitted on the
+same scaled series, so the rescaling constant cancels. The delta columns
+restate the ranking in relative terms: delta_aic is each model's AIC distance
+from the leader, and by the Burnham and Anderson guideline a distance above
+10 means essentially no support for the trailing model.
 
 In-sample fit does not establish forecasting ability. That question belongs
-to the next section, which evaluates the winning specification against the
-persistence benchmark on data neither has seen.
+to the next section, which evaluates the winning specification against both
+benchmarks on data none of them has seen.
 
 
 
@@ -1935,22 +2180,26 @@ information available today? Walk-forward evaluation answers that directly.
 - Forecast: one-step-ahead conditional volatility, divided by 100 to return
   to raw units.
 - Forecasters: the AIC winner ({best_label}) and the runner-up
-  (GARCH(1,1) — Student's t), both evaluated against persistence and EWMA.
+  ({runnerup_label}), both evaluated against persistence and EWMA.
   Running the runner-up confirms the in-sample ranking holds out of sample.
 
-One conversion is required for a fair comparison. GARCH-family models
-forecast the conditional standard deviation, sigma. The persistence benchmark
-forecasts the absolute return directly. These are different quantities: the
-expected absolute value of a shock is c × sigma, where c depends on the
-innovation distribution — sqrt(2/pi) ≈ 0.7979 for a Normal, and roughly 0.75
-to 0.80 for a standardised Student's t at the nu values typical of equity
-indices. Comparing raw sigma against realised |r| would penalise the model
-for a unit mismatch rather than forecasting skill. GARCH forecasts below are
-converted to expected absolute returns using the exact factor implied by each
-refit's fitted distribution, and the unadjusted sigma error is reported
-alongside to show the size of the effect. EWMA forecasts are already in
-absolute-return units (sqrt of variance), so no distributional conversion is
-needed.
+Every volatility model here forecasts sigma, the conditional standard
+deviation, while the realised target is the absolute return. The expected
+absolute value of a shock is c × sigma, where c = E|Z| depends on the
+innovation distribution: sqrt(2/pi) ≈ 0.7979 for a Normal, roughly 0.75 to
+0.80 for a standardised Student's t at the nu values typical of equity
+indices, and for a skewed Student's t a value computed from its fitted shape
+parameters. Scoring raw sigma against |r| would penalise a forecaster for a
+unit mismatch rather than for forecasting skill.
+
+Each loss function therefore receives every forecaster in the units it is
+built for. RMSE and MAE compare expected absolute returns against |r|: GARCH
+forecasts use the factor implied by each refit's fitted distribution, and
+EWMA uses the Normal factor its RiskMetrics design assumes. QLIKE compares
+variances against squared returns, so every forecaster enters it as
+unconverted sigma. Persistence forecasts yesterday's absolute return directly
+and needs no conversion. The unconverted sigma errors are reported alongside,
+to show the size of the unit effect.
 """))
 ```
 
@@ -1971,23 +2220,27 @@ information available today? Walk-forward evaluation answers that directly.
   conditional variance updates daily with each new observation.
 - Forecast: one-step-ahead conditional volatility, divided by 100 to return
   to raw units.
-- Forecasters: the AIC winner (GJR-GARCH(1,1,1) — Student's t) and the runner-up
-  (GARCH(1,1) — Student's t), both evaluated against persistence and EWMA.
+- Forecasters: the AIC winner (GJR-GARCH(1,1,1) — skewed Student's t) and the runner-up
+  (GJR-GARCH(1,1,1) — Student's t), both evaluated against persistence and EWMA.
   Running the runner-up confirms the in-sample ranking holds out of sample.
 
-One conversion is required for a fair comparison. GARCH-family models
-forecast the conditional standard deviation, sigma. The persistence benchmark
-forecasts the absolute return directly. These are different quantities: the
-expected absolute value of a shock is c × sigma, where c depends on the
-innovation distribution — sqrt(2/pi) ≈ 0.7979 for a Normal, and roughly 0.75
-to 0.80 for a standardised Student's t at the nu values typical of equity
-indices. Comparing raw sigma against realised |r| would penalise the model
-for a unit mismatch rather than forecasting skill. GARCH forecasts below are
-converted to expected absolute returns using the exact factor implied by each
-refit's fitted distribution, and the unadjusted sigma error is reported
-alongside to show the size of the effect. EWMA forecasts are already in
-absolute-return units (sqrt of variance), so no distributional conversion is
-needed.
+Every volatility model here forecasts sigma, the conditional standard
+deviation, while the realised target is the absolute return. The expected
+absolute value of a shock is c × sigma, where c = E|Z| depends on the
+innovation distribution: sqrt(2/pi) ≈ 0.7979 for a Normal, roughly 0.75 to
+0.80 for a standardised Student's t at the nu values typical of equity
+indices, and for a skewed Student's t a value computed from its fitted shape
+parameters. Scoring raw sigma against |r| would penalise a forecaster for a
+unit mismatch rather than for forecasting skill.
+
+Each loss function therefore receives every forecaster in the units it is
+built for. RMSE and MAE compare expected absolute returns against |r|: GARCH
+forecasts use the factor implied by each refit's fitted distribution, and
+EWMA uses the Normal factor its RiskMetrics design assumes. QLIKE compares
+variances against squared returns, so every forecaster enters it as
+unconverted sigma. Persistence forecasts yesterday's absolute return directly
+and needs no conversion. The unconverted sigma errors are reported alongside,
+to show the size of the unit effect.
 
 
 
@@ -1997,9 +2250,15 @@ needed.
 def abs_return_factor(params):
     """E|Z| for the fitted innovation distribution.
 
-    Student's t (standardised, nu degrees of freedom) when 'nu' is present;
-    Normal otherwise.
+    Skewed Student's t when 'eta' and 'lambda' are present; Student's t
+    (standardised, nu degrees of freedom) when 'nu' is present; Normal
+    otherwise.
     """
+    if 'eta' in params and 'lambda' in params:
+        # Z has mean zero, so E|Z| = -2 * E[Z; Z < 0], the first lower
+        # partial moment of the fitted distribution at zero.
+        shape = [params['eta'], params['lambda']]
+        return -2 * SkewStudent().partial_moment(1, 0.0, shape)
     if 'nu' in params:
         nu_ = params['nu']
         return (2 * np.sqrt(nu_ - 2) * gamma_fn((nu_ + 1) / 2)
@@ -2012,7 +2271,6 @@ n = len(returns_scaled)
 test_start = n - test_size
 
 # Runner-up specification for OOS confirmation
-runnerup_label = "GARCH(1,1) — Student's t"
 runnerup_spec = model_specs[runnerup_label]
 
 wf_rows = []
@@ -2057,9 +2315,11 @@ wf = pd.DataFrame(wf_rows).set_index('date')
 wf['realised_vol'] = realised_vol.reindex(wf.index)
 wf['persistence_forecast'] = realised_vol.shift(1).reindex(wf.index)
 
-# EWMA benchmark on the test window (expanding from the same history)
+# EWMA benchmark on the test window (expanding from the same history).
+# Its sigma feeds QLIKE; the converted forecast feeds RMSE and MAE.
 ewma_var_full = (returns ** 2).ewm(alpha=(1 - ewma_lambda), adjust=False).mean()
-wf['ewma_forecast'] = np.sqrt(ewma_var_full.shift(1)).reindex(wf.index)
+wf['ewma_sigma'] = np.sqrt(ewma_var_full.shift(1)).reindex(wf.index)
+wf['ewma_forecast'] = wf['ewma_sigma'] * ewma_abs_factor
 
 wf = wf.dropna()
 
@@ -2069,8 +2329,8 @@ print(f'Walk-forward window: {wf.index.min().date()} to {wf.index.max().date()}'
 print(f'Forecasts produced: {len(wf)}')
 ```
 
-    Winner:    GJR-GARCH(1,1,1) — Student's t
-    Runner-up: GARCH(1,1) — Student's t
+    Winner:    GJR-GARCH(1,1,1) — skewed Student's t
+    Runner-up: GJR-GARCH(1,1,1) — Student's t
     Walk-forward window: 2025-09-25 to 2026-09-25
     Forecasts produced: 252
     
@@ -2078,20 +2338,24 @@ print(f'Forecasts produced: {len(wf)}')
 
 ```python
 # ── Error metrics ──
+# RMSE and MAE score expected absolute returns against |r|. QLIKE is defined
+# on variance forecasts, so every forecaster enters it as unconverted sigma.
 def qlike(actual, forecast):
     """QLIKE loss: mean of (actual^2 / forecast^2 - log(actual^2 / forecast^2) - 1).
-    Patton (2011) consistent loss for volatility proxy evaluation."""
+    Patton (2011) consistent loss for volatility proxy evaluation. `forecast`
+    is a conditional standard deviation, so forecast^2 is the variance
+    forecast the loss is defined on."""
     ratio = (actual ** 2) / (forecast ** 2)
     return np.mean(ratio - np.log(ratio) - 1)
 
 rmse_garch_wf = root_mean_squared_error(wf['realised_vol'], wf['abs_return_forecast'])
 mae_garch_wf = mean_absolute_error(wf['realised_vol'], wf['abs_return_forecast'])
-qlike_garch_wf = qlike(wf['realised_vol'], wf['abs_return_forecast'])
+qlike_garch_wf = qlike(wf['realised_vol'], wf['sigma_forecast'])
 rmse_sigma_wf = root_mean_squared_error(wf['realised_vol'], wf['sigma_forecast'])
 
 rmse_ru_wf = root_mean_squared_error(wf['realised_vol'], wf['abs_return_forecast_ru'])
 mae_ru_wf = mean_absolute_error(wf['realised_vol'], wf['abs_return_forecast_ru'])
-qlike_ru_wf = qlike(wf['realised_vol'], wf['abs_return_forecast_ru'])
+qlike_ru_wf = qlike(wf['realised_vol'], wf['sigma_forecast_ru'])
 
 rmse_pers_wf = root_mean_squared_error(wf['realised_vol'], wf['persistence_forecast'])
 mae_pers_wf = mean_absolute_error(wf['realised_vol'], wf['persistence_forecast'])
@@ -2099,29 +2363,36 @@ qlike_pers_wf = np.nan  # QLIKE divides by forecast², undefined when persistenc
 
 rmse_ewma_wf = root_mean_squared_error(wf['realised_vol'], wf['ewma_forecast'])
 mae_ewma_wf = mean_absolute_error(wf['realised_vol'], wf['ewma_forecast'])
-qlike_ewma_wf = qlike(wf['realised_vol'], wf['ewma_forecast'])
+qlike_ewma_wf = qlike(wf['realised_vol'], wf['ewma_sigma'])
+rmse_ewma_sigma_wf = root_mean_squared_error(wf['realised_vol'], wf['ewma_sigma'])
 
 improvement_vs_pers = (rmse_pers_wf - rmse_garch_wf) / rmse_pers_wf * 100
 improvement_vs_ewma = (rmse_ewma_wf - rmse_garch_wf) / rmse_ewma_wf * 100
+ru_gap_pct = (rmse_ru_wf - rmse_garch_wf) / rmse_garch_wf * 100
 
+ewma_label = f'EWMA λ={ewma_lambda}'
 forecast_comparison = pd.DataFrame({
-    'RMSE': [rmse_pers_wf, rmse_ewma_wf, rmse_garch_wf, rmse_ru_wf, rmse_sigma_wf],
-    'MAE':  [mae_pers_wf, mae_ewma_wf, mae_garch_wf, mae_ru_wf, np.nan],
-    'QLIKE': [qlike_pers_wf, qlike_ewma_wf, qlike_garch_wf, qlike_ru_wf, np.nan],
+    'RMSE': [rmse_pers_wf, rmse_ewma_wf, rmse_garch_wf, rmse_ru_wf,
+             rmse_ewma_sigma_wf, rmse_sigma_wf],
+    'MAE': [mae_pers_wf, mae_ewma_wf, mae_garch_wf, mae_ru_wf, np.nan, np.nan],
+    'QLIKE': [qlike_pers_wf, qlike_ewma_wf, qlike_garch_wf, qlike_ru_wf,
+              np.nan, np.nan],
 }, index=[
     'Persistence (test window)',
-    f'EWMA λ={ewma_lambda} (test window)',
-    f'{best_label} (E|r| adjusted)',
-    f'{runnerup_label} (E|r| adjusted)',
-    f'{best_label} (raw sigma)',
+    ewma_label,
+    best_label,
+    runnerup_label,
+    f'{ewma_label} (raw sigma, unit reference)',
+    f'{best_label} (raw sigma, unit reference)',
 ])
 display(forecast_comparison)
 
 print(f'RMSE change vs persistence: {improvement_vs_pers:+.1f}%')
 print(f'RMSE change vs EWMA:        {improvement_vs_ewma:+.1f}%')
+print(f'Runner-up RMSE vs winner:   {ru_gap_pct:+.2f}%')
 
-# ── Diebold-Mariano test: GJR-GARCH vs persistence ──
-# Squared-error loss differential, Newey-West HAC variance for serial correlation.
+# ── Diebold-Mariano tests under squared-error loss ──
+# Newey-West HAC variance for serial correlation in the loss differential.
 e_garch = (wf['realised_vol'] - wf['abs_return_forecast']).values
 e_pers = (wf['realised_vol'] - wf['persistence_forecast']).values
 e_ewma = (wf['realised_vol'] - wf['ewma_forecast']).values
@@ -2150,67 +2421,140 @@ def dm_test_nw(d, max_lag=None):
 dm_stat_pers, dm_p_pers = dm_test_nw(d_vs_pers)
 dm_stat_ewma, dm_p_ewma = dm_test_nw(d_vs_ewma)
 
-# ── Diebold-Mariano under QLIKE loss: EWMA vs GJR-GARCH ──
-# EWMA wins on QLIKE in the table. Is that reversal significant?
+# ── Diebold-Mariano under QLIKE loss: the selected model vs EWMA ──
 def qlike_loss(actual, forecast):
-    """Per-observation QLIKE loss (not averaged)."""
+    """Per-observation QLIKE loss (not averaged); forecast is a sigma."""
     ratio = (actual ** 2) / (forecast ** 2)
     return ratio - np.log(ratio) - 1
 
-ql_garch = qlike_loss(wf['realised_vol'].values, wf['abs_return_forecast'].values)
-ql_ewma = qlike_loss(wf['realised_vol'].values, wf['ewma_forecast'].values)
+ql_garch = qlike_loss(wf['realised_vol'].values, wf['sigma_forecast'].values)
+ql_ewma = qlike_loss(wf['realised_vol'].values, wf['ewma_sigma'].values)
 d_qlike_ewma = ql_ewma - ql_garch  # positive = GARCH better under QLIKE
 
 dm_stat_qlike_ewma, dm_p_qlike_ewma = dm_test_nw(d_qlike_ewma)
-
 
 print(f'\nDiebold-Mariano (Newey-West HAC):')
 print(f'  vs Persistence (SE loss): DM = {dm_stat_pers:.3f}, p = {dm_p_pers:.4f}')
 print(f'  vs EWMA (SE loss):        DM = {dm_stat_ewma:.3f}, p = {dm_p_ewma:.4f}')
 print(f'  vs EWMA (QLIKE loss):     DM = {dm_stat_qlike_ewma:.3f}, p = {dm_p_qlike_ewma:.4f}')
 
+# ── Sentences that depend on the results ──
+def p_text(p):
+    return '< 0.001' if p < 0.001 else f'= {p:.4f}'
+
+def change_text(pct):
+    return f"{abs(pct):.1f}% {'lower' if pct > 0 else 'higher'}"
+
+if rmse_ewma_wf < rmse_pers_wf * 0.9:
+    ewma_vs_pers_text = ("a large improvement over persistence, confirming that most of "
+                         "the persistence benchmark's weakness is its reliance on a single "
+                         "noisy observation rather than smooth decay.")
+elif rmse_ewma_wf < rmse_pers_wf:
+    ewma_vs_pers_text = "a moderate improvement over persistence."
+else:
+    ewma_vs_pers_text = "no improvement over persistence in this window."
+
+if improvement_vs_pers > 0 and improvement_vs_ewma > 0:
+    garch_vs_bench_text = ("The model beats both benchmarks, including the tougher EWMA "
+                           "bar, with every forecast scored in the same units.")
+elif improvement_vs_pers > 0:
+    garch_vs_bench_text = ("The model beats persistence but not EWMA on RMSE. With every "
+                           "forecast scored in the same units, EWMA already captures most "
+                           "of the forecastable structure in this window.")
+elif improvement_vs_ewma > 0:
+    garch_vs_bench_text = ("The model beats EWMA but not persistence on RMSE, an unusual "
+                           "ordering worth checking before relying on either result.")
+else:
+    garch_vs_bench_text = ("The model beats neither benchmark on RMSE over this window, a "
+                           "null result reported as found.")
+
+ru_gap_text = (f"{abs(ru_gap_pct):.2f}%" if abs(ru_gap_pct) >= 0.005
+               else "less than 0.01%")
+if rmse_garch_wf < rmse_ru_wf:
+    ru_text = (f"The in-sample AIC ranking holds out of sample: the runner-up's RMSE is "
+               f"{ru_gap_text} higher than the winner's.")
+else:
+    ru_text = (f"The runner-up matches or beats the winner on RMSE, by {ru_gap_text}, "
+               f"so the in-sample AIC advantage does not translate into better point "
+               f"forecasts over this window. The AIC-selected specification is "
+               f"retained for consistency.")
+
+spec_diff = {k for k in set(best_spec) | set(runnerup_spec)
+             if best_spec.get(k) != runnerup_spec.get(k)}
+if spec_diff == {'dist'}:
+    ru_text += (" The two specifications share a variance equation and differ only in "
+                "the innovation distribution, which mainly shapes the tails. Typical-sized "
+                "moves dominate this test, so a small gap is expected either way; the "
+                "tails are tested by the VaR backtest in Notebook 08.")
+
+if dm_p_pers < 0.05 and dm_stat_pers > 0:
+    dm_pers_text = "a statistically significant improvement."
+elif dm_p_pers < 0.05:
+    dm_pers_text = "a statistically significant deterioration: persistence forecasts better."
+else:
+    dm_pers_text = ("not significant at the 5% level. The 252-day window is one draw, "
+                    "and the point estimate should not be over-interpreted.")
+
+if dm_p_ewma < 0.05 and dm_stat_ewma > 0:
+    dm_ewma_text = "a significant edge over the industry-standard naive forecast."
+elif dm_p_ewma < 0.05:
+    dm_ewma_text = "a significant disadvantage: EWMA forecasts better under squared-error loss."
+else:
+    dm_ewma_text = "not significant at the 5% level against the tougher benchmark."
+
+qlike_scores = {ewma_label: qlike_ewma_wf, best_label: qlike_garch_wf,
+                runnerup_label: qlike_ru_wf}
+qlike_order = sorted(qlike_scores, key=qlike_scores.get)
+qlike_order_text = ', then '.join(f'{name} ({qlike_scores[name]:.4f})'
+                                  for name in qlike_order)
+
+if dm_p_qlike_ewma < 0.05:
+    qlike_dm_text = ("a significant difference in favour of "
+                     + ("the selected model." if dm_stat_qlike_ewma > 0 else "EWMA."))
+else:
+    qlike_dm_text = ("not significant at the 5% level: under QLIKE the two forecasts "
+                     "cannot be separated in this window.")
+
+if (improvement_vs_ewma > 0) == (dm_stat_qlike_ewma > 0):
+    loss_agreement_text = "Squared-error loss and QLIKE agree on the direction."
+else:
+    loss_agreement_text = "Squared-error loss and QLIKE disagree on the direction."
+
 display(Markdown(f"""
 ### Walk-forward results
 
 Both benchmarks and both GARCH specifications were evaluated on the same
-{len(wf)}-day test window. QLIKE (Patton 2011) is reported alongside RMSE
-and MAE because it remains a consistent loss function even when the
-volatility proxy is noisy — a property squared-error loss does not have.
+{len(wf)}-day test window. QLIKE (Patton 2011) is reported alongside RMSE and
+MAE because it remains a consistent loss function even when the volatility
+proxy is noisy, a property squared-error loss does not have. RMSE and MAE
+score expected absolute returns; QLIKE scores each forecaster's sigma, the
+units it is defined on.
 
 **Persistence** produced RMSE = {rmse_pers_wf:.6f}.
-**EWMA (λ = {ewma_lambda})** produced RMSE = {rmse_ewma_wf:.6f} — already
-{"a large improvement over persistence, confirming that most of the persistence benchmark's weakness is its reliance on a single noisy observation rather than smooth decay." if rmse_ewma_wf < rmse_pers_wf * 0.9 else "a moderate improvement over persistence."}
-**{best_label}** (E|r|-adjusted) produced
-RMSE = {rmse_garch_wf:.6f}, a {improvement_vs_pers:.1f}% reduction vs
-persistence and a {improvement_vs_ewma:+.1f}% change vs EWMA.
-{'The model beats both benchmarks, including the tougher EWMA bar. The gain over EWMA is the value of estimated (rather than fixed) decay and distributional modelling.' if improvement_vs_ewma > 0 else 'The model beats persistence but not EWMA on RMSE. Against EWMA the edge is negative, meaning EWMA already captures most of the forecastable structure. The estimated GARCH parameters add distributional modelling and asymmetry but do not translate into lower point-forecast error over this particular window.'}
+**EWMA (λ = {ewma_lambda})** produced RMSE = {rmse_ewma_wf:.6f}, {ewma_vs_pers_text}
+**{best_label}** produced RMSE = {rmse_garch_wf:.6f}, {change_text(improvement_vs_pers)}
+than persistence and {change_text(improvement_vs_ewma)} than EWMA.
+{garch_vs_bench_text}
 
-**{runnerup_label}** produced RMSE = {rmse_ru_wf:.6f}.
-{'The in-sample AIC ranking holds out of sample: the asymmetric specification retains its edge.' if rmse_garch_wf < rmse_ru_wf else 'The runner-up matches or beats the winner on RMSE, suggesting the in-sample AIC advantage from asymmetry does not translate into superior point forecasts over this window. Both remain valid for the regime classifier, and the AIC-selected specification is retained for consistency.'}
+**{runnerup_label}** produced RMSE = {rmse_ru_wf:.6f}. {ru_text}
 
 The Diebold-Mariano test (Newey-West HAC variance, squared-error loss) asks
 whether each RMSE difference is distinguishable from noise. Against
-persistence, DM = {dm_stat_pers:.3f}
-(p {'< 0.001' if dm_p_pers < 0.001 else f'= {dm_p_pers:.4f}'}) —
-{'a statistically significant improvement.' if dm_p_pers < 0.05 else 'not significant at the 5% level. The 252-day window is one draw, and the point estimate should not be over-interpreted.'}
-Against EWMA, DM = {dm_stat_ewma:.3f}
-(p {'< 0.001' if dm_p_ewma < 0.001 else f'= {dm_p_ewma:.4f}'}) —
-{'a significant edge over the industry-standard naive forecast.' if dm_p_ewma < 0.05 else 'not significant at the 5% level against the tougher benchmark.'}
+persistence, DM = {dm_stat_pers:.3f} (p {p_text(dm_p_pers)}): {dm_pers_text}
+Against EWMA, DM = {dm_stat_ewma:.3f} (p {p_text(dm_p_ewma)}): {dm_ewma_text}
 
-The QLIKE column tells a different story. EWMA scores lower (better) than
-both GARCH specifications. QLIKE penalises proportional forecast errors more
-heavily than squared-error loss, so it is more sensitive to days where the
-model overshoots relative to realised volatility. A Diebold-Mariano test
-under QLIKE loss returns DM = {dm_stat_qlike_ewma:.3f}
-(p = {dm_p_qlike_ewma:.4f}) —
-{'the EWMA advantage under QLIKE is statistically significant, a genuine disagreement between loss functions rather than noise.' if dm_p_qlike_ewma < 0.05 else 'not significant at the 5% level. The EWMA advantage under QLIKE is directional but not distinguishable from noise in this window.'}
-Persistence is excluded from QLIKE because its near-zero forecasts on flat
-days make the loss undefined.
+Under QLIKE, where lower is better, the ordering is {qlike_order_text}.
+QLIKE is asymmetric: it penalises a variance forecast that comes in below the
+realised squared return more heavily than one that comes in above it. A
+Diebold-Mariano test of the selected model against EWMA under QLIKE loss
+returns DM = {dm_stat_qlike_ewma:.3f} (p = {dm_p_qlike_ewma:.4f}):
+{qlike_dm_text} {loss_agreement_text} Persistence is excluded from QLIKE
+because its near-zero forecasts on flat days make the loss undefined.
 
-For reference, the unadjusted sigma forecasts score
-RMSE = {rmse_sigma_wf:.6f} against the same target. The difference between
-the two {best_label} rows is the unit-mismatch effect the conversion removes,
-not a change in forecasting skill.
+For reference, scoring raw sigma against |r| gives RMSE =
+{rmse_sigma_wf:.6f} for {best_label} and {rmse_ewma_sigma_wf:.6f} for EWMA.
+The gap between each forecaster's two rows is the unit effect the conversion
+removes, not a difference in forecasting skill.
 """))
 ```
 
@@ -2246,26 +2590,32 @@ not a change in forecasting skill.
       <td>NaN</td>
     </tr>
     <tr>
-      <th>EWMA λ=0.94 (test window)</th>
-      <td>0.005694</td>
-      <td>0.004600</td>
+      <th>EWMA λ=0.94</th>
+      <td>0.005366</td>
+      <td>0.004080</td>
       <td>1.696274</td>
     </tr>
     <tr>
-      <th>GJR-GARCH(1,1,1) — Student's t (E|r| adjusted)</th>
+      <th>GJR-GARCH(1,1,1) — skewed Student's t</th>
+      <td>0.005236</td>
+      <td>0.004005</td>
+      <td>1.635379</td>
+    </tr>
+    <tr>
+      <th>GJR-GARCH(1,1,1) — Student's t</th>
       <td>0.005233</td>
       <td>0.004000</td>
-      <td>1.855085</td>
+      <td>1.634800</td>
     </tr>
     <tr>
-      <th>GARCH(1,1) — Student's t (E|r| adjusted)</th>
-      <td>0.005353</td>
-      <td>0.004106</td>
-      <td>1.906233</td>
+      <th>EWMA λ=0.94 (raw sigma, unit reference)</th>
+      <td>0.005694</td>
+      <td>NaN</td>
+      <td>NaN</td>
     </tr>
     <tr>
-      <th>GJR-GARCH(1,1,1) — Student's t (raw sigma)</th>
-      <td>0.005733</td>
+      <th>GJR-GARCH(1,1,1) — skewed Student's t (raw sigma, unit reference)</th>
+      <td>0.005719</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -2275,12 +2625,13 @@ not a change in forecasting skill.
 
 
     RMSE change vs persistence: +30.8%
-    RMSE change vs EWMA:        +8.1%
+    RMSE change vs EWMA:        +2.4%
+    Runner-up RMSE vs winner:   -0.06%
     
     Diebold-Mariano (Newey-West HAC):
-      vs Persistence (SE loss): DM = 5.519, p = 0.0000
-      vs EWMA (SE loss):        DM = 4.122, p = 0.0000
-      vs EWMA (QLIKE loss):     DM = -1.663, p = 0.0962
+      vs Persistence (SE loss): DM = 5.510, p = 0.0000
+      vs EWMA (SE loss):        DM = 1.768, p = 0.0770
+      vs EWMA (QLIKE loss):     DM = 1.617, p = 0.1059
     
 
 
@@ -2288,44 +2639,37 @@ not a change in forecasting skill.
 ### Walk-forward results
 
 Both benchmarks and both GARCH specifications were evaluated on the same
-252-day test window. QLIKE (Patton 2011) is reported alongside RMSE
-and MAE because it remains a consistent loss function even when the
-volatility proxy is noisy — a property squared-error loss does not have.
+252-day test window. QLIKE (Patton 2011) is reported alongside RMSE and
+MAE because it remains a consistent loss function even when the volatility
+proxy is noisy, a property squared-error loss does not have. RMSE and MAE
+score expected absolute returns; QLIKE scores each forecaster's sigma, the
+units it is defined on.
 
 **Persistence** produced RMSE = 0.007562.
-**EWMA (λ = 0.94)** produced RMSE = 0.005694 — already
-a large improvement over persistence, confirming that most of the persistence benchmark's weakness is its reliance on a single noisy observation rather than smooth decay.
-**GJR-GARCH(1,1,1) — Student's t** (E|r|-adjusted) produced
-RMSE = 0.005233, a 30.8% reduction vs
-persistence and a +8.1% change vs EWMA.
-The model beats both benchmarks, including the tougher EWMA bar. The gain over EWMA is the value of estimated (rather than fixed) decay and distributional modelling.
+**EWMA (λ = 0.94)** produced RMSE = 0.005366, a large improvement over persistence, confirming that most of the persistence benchmark's weakness is its reliance on a single noisy observation rather than smooth decay.
+**GJR-GARCH(1,1,1) — skewed Student's t** produced RMSE = 0.005236, 30.8% lower
+than persistence and 2.4% lower than EWMA.
+The model beats both benchmarks, including the tougher EWMA bar, with every forecast scored in the same units.
 
-**GARCH(1,1) — Student's t** produced RMSE = 0.005353.
-The in-sample AIC ranking holds out of sample: the asymmetric specification retains its edge.
+**GJR-GARCH(1,1,1) — Student's t** produced RMSE = 0.005233. The runner-up matches or beats the winner on RMSE, by 0.06%, so the in-sample AIC advantage does not translate into better point forecasts over this window. The AIC-selected specification is retained for consistency. The two specifications share a variance equation and differ only in the innovation distribution, which mainly shapes the tails. Typical-sized moves dominate this test, so a small gap is expected either way; the tails are tested by the VaR backtest in Notebook 08.
 
 The Diebold-Mariano test (Newey-West HAC variance, squared-error loss) asks
 whether each RMSE difference is distinguishable from noise. Against
-persistence, DM = 5.519
-(p < 0.001) —
-a statistically significant improvement.
-Against EWMA, DM = 4.122
-(p < 0.001) —
-a significant edge over the industry-standard naive forecast.
+persistence, DM = 5.510 (p < 0.001): a statistically significant improvement.
+Against EWMA, DM = 1.768 (p = 0.0770): not significant at the 5% level against the tougher benchmark.
 
-The QLIKE column tells a different story. EWMA scores lower (better) than
-both GARCH specifications. QLIKE penalises proportional forecast errors more
-heavily than squared-error loss, so it is more sensitive to days where the
-model overshoots relative to realised volatility. A Diebold-Mariano test
-under QLIKE loss returns DM = -1.663
-(p = 0.0962) —
-not significant at the 5% level. The EWMA advantage under QLIKE is directional but not distinguishable from noise in this window.
-Persistence is excluded from QLIKE because its near-zero forecasts on flat
-days make the loss undefined.
+Under QLIKE, where lower is better, the ordering is GJR-GARCH(1,1,1) — Student's t (1.6348), then GJR-GARCH(1,1,1) — skewed Student's t (1.6354), then EWMA λ=0.94 (1.6963).
+QLIKE is asymmetric: it penalises a variance forecast that comes in below the
+realised squared return more heavily than one that comes in above it. A
+Diebold-Mariano test of the selected model against EWMA under QLIKE loss
+returns DM = 1.617 (p = 0.1059):
+not significant at the 5% level: under QLIKE the two forecasts cannot be separated in this window. Squared-error loss and QLIKE agree on the direction. Persistence is excluded from QLIKE
+because its near-zero forecasts on flat days make the loss undefined.
 
-For reference, the unadjusted sigma forecasts score
-RMSE = 0.005733 against the same target. The difference between
-the two GJR-GARCH(1,1,1) — Student's t rows is the unit-mismatch effect the conversion removes,
-not a change in forecasting skill.
+For reference, scoring raw sigma against |r| gives RMSE =
+0.005719 for GJR-GARCH(1,1,1) — skewed Student's t and 0.005694 for EWMA.
+The gap between each forecaster's two rows is the unit effect the conversion
+removes, not a difference in forecasting skill.
 
 
 
@@ -2375,7 +2719,7 @@ conditional volatility path into four states that map directly to decisions
 such as position sizing and capital deployment schedules.
 
 The regimes are defined on the annualised conditional volatility from the
-selected model (GJR-GARCH(1,1,1) — Student's t), using percentile thresholds:
+selected model (GJR-GARCH(1,1,1) — skewed Student's t), using percentile thresholds:
 
 - Calm: below the 25th percentile
 - Normal: 25th to 75th percentile
@@ -2418,10 +2762,10 @@ print(regime_df['regime'].value_counts())
 ```
 
     Thresholds (annualised volatility):
-      Calm   < 0.1023
-      Normal < 0.1935
-      Stress < 0.3376
-      Crisis >= 0.3376
+      Calm   < 0.1018
+      Normal < 0.1931
+      Stress < 0.3379
+      Crisis >= 0.3379
     
     regime
     Normal    3220
@@ -2456,10 +2800,10 @@ print(hikes_share.round(3))
     
     Rate-hike year (2022):
     regime
-    Stress    0.582
-    Normal    0.319
-    Crisis    0.096
-    Calm      0.004
+    Stress    0.578
+    Normal    0.315
+    Crisis    0.100
+    Calm      0.008
     Name: proportion, dtype: float64
     
 
@@ -2605,12 +2949,12 @@ never the absolute-move row.
 
 | Quantity | Value |
 |---|---|
-| Next-day conditional standard deviation | 0.6446% daily (10.23% annualised) |
-| Expected absolute daily move | 0.4882% |
-| Historical percentile | 25% |
+| Next-day conditional standard deviation | 0.6384% daily (10.13% annualised) |
+| Expected absolute daily move | 0.4871% |
+| Historical percentile | 24% |
 | Regime | **Calm** |
 
-Volatility sits in the bottom quartile of its historical distribution. The forecast is produced by GJR-GARCH(1,1,1) — Student's t,
+Volatility sits in the bottom quartile of its historical distribution. The forecast is produced by GJR-GARCH(1,1,1) — skewed Student's t,
 fitted on the full sample, and the regime label applies the thresholds
 validated in section 7.
 
@@ -2620,7 +2964,7 @@ losses. The conditional standard deviation is the model's sigma: the input to
 VaR-style calculations, where a loss threshold is sigma scaled by a quantile
 of the fitted innovation distribution. The expected absolute daily move is
 c × sigma, the expectation of tomorrow's |return| — a typical move, not a
-bad one. Turning the 10.2% annualised figure into a potential
+bad one. Turning the 10.1% annualised figure into a potential
 daily loss uses the standard deviation row and a chosen confidence level,
 never the absolute-move row.
 
@@ -2630,6 +2974,39 @@ never the absolute-move row.
 
 
 ```python
+# Sentences that depend on this run's results
+if lam_p >= 0.05:
+    skew_summary = (f"A skewed Student's t then tested whether the shocks themselves "
+                    f"lean to one side; the skew parameter was not significant "
+                    f"(lambda = {lam:.4f}, p = {lam_p:.2e}).")
+else:
+    lean_side = 'falls' if lam < 0 else 'rises'
+    skew_summary = (f"A skewed Student's t then tested whether the shocks themselves "
+                    f"lean to one side: lambda = {lam:.4f} (p = {lam_p:.2e}), so large "
+                    f"{lean_side} are more likely than moves of the same size in the "
+                    f"other direction.")
+skew_summary += (f" Against the symmetric GJR fit, AIC differed by {abs(d_aic):,.2f} "
+                 f"points in favour of the {aic_winner} model.")
+
+if rmse_garch_wf < rmse_ru_wf:
+    ru_summary = 'confirming the in-sample AIC ranking holds'
+else:
+    ru_summary = ('with no clear out-of-sample advantage for the winner, which is '
+                  'retained as the AIC-selected model')
+
+qlike_verdict = 'significant' if dm_p_qlike_ewma < 0.05 else 'not significant'
+qlike_summary = (f"Under QLIKE, scored on each forecaster's sigma, the ordering was "
+                 f"{qlike_order_text}; the test of the selected model against EWMA "
+                 f"returned DM = {dm_stat_qlike_ewma:.3f}, p = {dm_p_qlike_ewma:.4f}, "
+                 f"{qlike_verdict} at the 5% level.")
+
+test_vol_ann = returns.loc[wf.index].std() * np.sqrt(252)
+full_vol_ann = returns.std() * np.sqrt(252)
+test_calmer = 'calmer' if test_vol_ann < full_vol_ann else 'more volatile'
+test_window_text = (f"This test window was {test_calmer} than the sample as a whole, "
+                    f"with annualised volatility of {test_vol_ann:.1%} against "
+                    f"{full_vol_ann:.1%} over the full sample.")
+
 display(Markdown(f"""
 The ARCH-LM test (LM = {arch_test[0]:,.2f}, p ≈ 0) confirmed conditional
 heteroskedasticity in daily returns. ARCH(1) validated the mechanism but not
@@ -2639,6 +3016,7 @@ with one parameter. The distributional change from Normal to Student's t
 (nu = {nu:.2f}) improved AIC by {aic_drop:,.2f} with the variance equation
 held fixed, isolating the value of modelling the tails honestly.
 {f"GJR-GARCH then confirmed the leverage effect: gamma = {gamma_j:.4f}, so negative shocks raise next-day variance with weight {alpha_j + gamma_j:.4f} against {alpha_j:.4e} for positive shocks of the same size. Alpha pinning at its lower bound means all shock-driven variance flows through the asymmetry channel, a boundary result flagged in section 5.5." if gamma_p < 0.05 and gamma_j > 0 else f"The GJR asymmetry term was tested and found non-significant: the unconditional skewness of {skew_nb02:.4f} does not translate into a conditional-variance asymmetry in this sample, a null result reported as found."}
+{skew_summary}
 The AIC winner, {best_label}, advanced to every downstream section.
 
 Out of sample, two benchmarks were tested rather than one: persistence
@@ -2646,12 +3024,9 @@ Out of sample, two benchmarks were tested rather than one: persistence
 industry-standard naive forecast. {best_label}
 {f"beat persistence by {improvement_vs_pers:.1f}% on RMSE (DM p {'< 0.001' if dm_p_pers < 0.001 else f'= {dm_p_pers:.4f}'}) and {'also beat EWMA by ' + f'{improvement_vs_ewma:.1f}%' + ' (DM p ' + ('<0.001' if dm_p_ewma < 0.001 else f'= {dm_p_ewma:.4f}') + ')' if improvement_vs_ewma > 0 else 'did not beat EWMA on RMSE, meaning EWMA already captures most forecastable structure in this window'} over the final 252 trading days" if improvement_vs_pers > 0 else f"did not beat the persistence benchmark over the final 252 trading days ({improvement_vs_pers:+.1f}% RMSE change), a null result reported as found"}.
 The runner-up ({runnerup_label}) was also evaluated out of sample
-({'confirming the in-sample AIC ranking holds' if rmse_garch_wf < rmse_ru_wf else 'with no clear OOS advantage for the asymmetric specification, though it is retained as the AIC-selected model'}).
+({ru_summary}).
 QLIKE (Patton 2011) was reported alongside RMSE and MAE as a
-proxy-consistent loss function. Under QLIKE, EWMA scored lower than both
-GARCH specifications — a directional reversal of the RMSE ranking, though
-not significant at the 5% level (DM = {dm_stat_qlike_ewma:.3f},
-p = {dm_p_qlike_ewma:.4f}).
+proxy-consistent loss function. {qlike_summary}
 
 The regime classifier's validation against the 2020 COVID crash and the 2022
 rate-hike cycle is reported in section 7, and the notebook closes with the
@@ -2664,23 +3039,25 @@ absolute move.
 This evaluation uses a single test window of 252 trading days. That mirrors
 the Notebook 04 convention and keeps every model on identical footing, but
 one window is one draw from one market regime, and forecasting performance
-can differ under others. The Diebold-Mariano tests quantify whether the
-observed differences are distinguishable from noise within this window, but
-they do not guarantee the ranking generalises. An extended study would repeat
-the walk-forward over multiple rolling or expanding windows and report the
-distribution of outcomes. The regime thresholds share a related caveat, noted
-in section 7: they are computed on the full sample for descriptive
-validation, where a production system would freeze them on a training window.
+can differ under others. {test_window_text} The Diebold-Mariano tests
+quantify whether the observed differences are distinguishable from noise
+within this window, but they do not guarantee the ranking generalises. An
+extended study would repeat the walk-forward over multiple rolling or
+expanding windows and report the distribution of outcomes. The regime
+thresholds share a related caveat, noted in section 7: they are computed on
+the full sample for descriptive validation, where a production system would
+freeze them on a training window.
 
 ### Evaluation protocol for Notebook 06
 
-Notebook 06 inherits this evaluation protocol unchanged: the same
-realised-volatility target (absolute daily log returns), the same 252-day
-walk-forward window, the same 21-day refit schedule, the same persistence
-and EWMA benchmarks, and the same RMSE, MAE, QLIKE, and Diebold-Mariano
-metrics. Any deep learning result reported there is directly comparable to
-the figures above, so a difference between the two reflects the models, not
-the test.
+Notebook 06 inherits the core of this protocol: the same realised-volatility
+target (absolute daily log returns), the same 252-day walk-forward window,
+the same 21-day refit schedule, the persistence benchmark, and RMSE, MAE and
+Diebold-Mariano tests. Its networks forecast the absolute return directly, so
+they need no unit conversion. It does not recompute EWMA or QLIKE, so its
+comparisons with the selected model rest on RMSE and MAE. Any deep learning
+result reported there is directly comparable to the RMSE and MAE figures
+above, so a difference between the two reflects the models, not the test.
 """))
 ```
 
@@ -2694,19 +3071,17 @@ with one parameter. The distributional change from Normal to Student's t
 (nu = 6.14) improved AIC by 306.36 with the variance equation
 held fixed, isolating the value of modelling the tails honestly.
 GJR-GARCH then confirmed the leverage effect: gamma = 0.2033, so negative shocks raise next-day variance with weight 0.2033 against 0.0000e+00 for positive shocks of the same size. Alpha pinning at its lower bound means all shock-driven variance flows through the asymmetry channel, a boundary result flagged in section 5.5.
-The AIC winner, GJR-GARCH(1,1,1) — Student's t, advanced to every downstream section.
+A skewed Student's t then tested whether the shocks themselves lean to one side: lambda = -0.1496 (p = 2.34e-20), so large falls are more likely than moves of the same size in the other direction. Against the symmetric GJR fit, AIC differed by 74.08 points in favour of the skewed model.
+The AIC winner, GJR-GARCH(1,1,1) — skewed Student's t, advanced to every downstream section.
 
 Out of sample, two benchmarks were tested rather than one: persistence
 (single-lag absolute return) and EWMA (RiskMetrics λ = 0.94), the
-industry-standard naive forecast. GJR-GARCH(1,1,1) — Student's t
-beat persistence by 30.8% on RMSE (DM p < 0.001) and also beat EWMA by 8.1% (DM p <0.001) over the final 252 trading days.
-The runner-up (GARCH(1,1) — Student's t) was also evaluated out of sample
-(confirming the in-sample AIC ranking holds).
+industry-standard naive forecast. GJR-GARCH(1,1,1) — skewed Student's t
+beat persistence by 30.8% on RMSE (DM p < 0.001) and also beat EWMA by 2.4% (DM p = 0.0770) over the final 252 trading days.
+The runner-up (GJR-GARCH(1,1,1) — Student's t) was also evaluated out of sample
+(with no clear out-of-sample advantage for the winner, which is retained as the AIC-selected model).
 QLIKE (Patton 2011) was reported alongside RMSE and MAE as a
-proxy-consistent loss function. Under QLIKE, EWMA scored lower than both
-GARCH specifications — a directional reversal of the RMSE ranking, though
-not significant at the 5% level (DM = -1.663,
-p = 0.0962).
+proxy-consistent loss function. Under QLIKE, scored on each forecaster's sigma, the ordering was GJR-GARCH(1,1,1) — Student's t (1.6348), then GJR-GARCH(1,1,1) — skewed Student's t (1.6354), then EWMA λ=0.94 (1.6963); the test of the selected model against EWMA returned DM = 1.617, p = 0.1059, not significant at the 5% level.
 
 The regime classifier's validation against the 2020 COVID crash and the 2022
 rate-hike cycle is reported in section 7, and the notebook closes with the
@@ -2719,23 +3094,25 @@ absolute move.
 This evaluation uses a single test window of 252 trading days. That mirrors
 the Notebook 04 convention and keeps every model on identical footing, but
 one window is one draw from one market regime, and forecasting performance
-can differ under others. The Diebold-Mariano tests quantify whether the
-observed differences are distinguishable from noise within this window, but
-they do not guarantee the ranking generalises. An extended study would repeat
-the walk-forward over multiple rolling or expanding windows and report the
-distribution of outcomes. The regime thresholds share a related caveat, noted
-in section 7: they are computed on the full sample for descriptive
-validation, where a production system would freeze them on a training window.
+can differ under others. This test window was calmer than the sample as a whole, with annualised volatility of 13.0% against 19.1% over the full sample. The Diebold-Mariano tests
+quantify whether the observed differences are distinguishable from noise
+within this window, but they do not guarantee the ranking generalises. An
+extended study would repeat the walk-forward over multiple rolling or
+expanding windows and report the distribution of outcomes. The regime
+thresholds share a related caveat, noted in section 7: they are computed on
+the full sample for descriptive validation, where a production system would
+freeze them on a training window.
 
 ### Evaluation protocol for Notebook 06
 
-Notebook 06 inherits this evaluation protocol unchanged: the same
-realised-volatility target (absolute daily log returns), the same 252-day
-walk-forward window, the same 21-day refit schedule, the same persistence
-and EWMA benchmarks, and the same RMSE, MAE, QLIKE, and Diebold-Mariano
-metrics. Any deep learning result reported there is directly comparable to
-the figures above, so a difference between the two reflects the models, not
-the test.
+Notebook 06 inherits the core of this protocol: the same realised-volatility
+target (absolute daily log returns), the same 252-day walk-forward window,
+the same 21-day refit schedule, the persistence benchmark, and RMSE, MAE and
+Diebold-Mariano tests. Its networks forecast the absolute return directly, so
+they need no unit conversion. It does not recompute EWMA or QLIKE, so its
+comparisons with the selected model rest on RMSE and MAE. Any deep learning
+result reported there is directly comparable to the RMSE and MAE figures
+above, so a difference between the two reflects the models, not the test.
 
 
 
@@ -2750,6 +3127,7 @@ for name, obj in list(globals().items()):
     res_garch11
     res_garch11_t
     res_gjr
+    res_gjr_skewt
     best_res
     res_refit
     res_refit_ru
@@ -2762,41 +3140,56 @@ metrics_path = Path('../data/locked_metrics.json')
 metrics = json.loads(metrics_path.read_text()) if metrics_path.exists() else {}
 
 metrics['notebook_05'] = {
-    'best_label':           best_label,
-    'wf_rmse_garch':        float(rmse_garch_wf),
-    'wf_mae_garch':         float(mae_garch_wf),
-    'wf_rmse_persistence':  float(rmse_pers_wf),
-    'wf_mae_persistence':   float(mae_pers_wf),
-    'wf_rmse_ewma':         float(rmse_ewma_wf),
-    'wf_mae_ewma':          float(mae_ewma_wf),
-    'improvement_rmse_pct': float(improvement_vs_pers),
+    'best_label':              best_label,
+    'runnerup_label':          runnerup_label,
+    'wf_rmse_garch':           float(rmse_garch_wf),
+    'wf_mae_garch':            float(mae_garch_wf),
+    'wf_rmse_runnerup':        float(rmse_ru_wf),
+    'wf_rmse_persistence':     float(rmse_pers_wf),
+    'wf_mae_persistence':      float(mae_pers_wf),
+    'wf_rmse_ewma':            float(rmse_ewma_wf),
+    'wf_mae_ewma':             float(mae_ewma_wf),
+    'improvement_rmse_pct':    float(improvement_vs_pers),
     'improvement_vs_ewma_pct': float(improvement_vs_ewma),
-    'dm_stat_vs_persistence': float(dm_stat_pers),
-    'dm_p_vs_persistence':    float(dm_p_pers),
-    'dm_stat_vs_ewma':        float(dm_stat_ewma),
-    'dm_p_vs_ewma':           float(dm_p_ewma),
-    'dm_stat_vs_ewma_qlike':  float(dm_stat_qlike_ewma),
-    'dm_p_vs_ewma_qlike':     float(dm_p_qlike_ewma),
-    'ewma_lambda':            float(ewma_lambda),
+    'dm_stat_vs_persistence':  float(dm_stat_pers),
+    'dm_p_vs_persistence':     float(dm_p_pers),
+    'dm_stat_vs_ewma':         float(dm_stat_ewma),
+    'dm_p_vs_ewma':            float(dm_p_ewma),
+    'qlike_garch':             float(qlike_garch_wf),
+    'qlike_ewma':              float(qlike_ewma_wf),
+    'dm_stat_vs_ewma_qlike':   float(dm_stat_qlike_ewma),
+    'dm_p_vs_ewma_qlike':      float(dm_p_qlike_ewma),
+    'ewma_lambda':             float(ewma_lambda),
+    'ewma_abs_factor':         float(ewma_abs_factor),
 }
 
-try:
-    p = best_res.params
-    a = sum(v for k, v in p.items() if k.startswith('alpha'))
-    b = sum(v for k, v in p.items() if k.startswith('beta'))
-    g = sum(v for k, v in p.items() if k.startswith('gamma'))
-    metrics['notebook_05']['garch_persistence'] = float(a + b + g / 2)
-except (NameError, AttributeError, KeyError) as e:
-    print(f'Skipped garch_persistence: {e}')
+# Fitted parameters of the selected model, read from whichever specification
+# won, so no downstream notebook has to assume a distribution.
+p = best_res.params
+dist = best_res.model.distribution
+shape_names = list(dist.parameter_names())
+shape = [float(p[name]) for name in shape_names]
+a = sum(v for k, v in p.items() if k.startswith('alpha'))
+b = sum(v for k, v in p.items() if k.startswith('beta'))
+g = sum(v for k, v in p.items() if k.startswith('gamma'))
+# The GJR indicator is active on a share of days equal to P(Z < 0): one half
+# under a symmetric distribution, a fitted value under a skewed one.
+p_neg = float(dist.cdf(0.0, shape)) if shape_names else 0.5
 
-try:
-    metrics['notebook_05']['garch_nu'] = float(best_res.params['nu'])
-    metrics['notebook_05']['garch_nu_nobs'] = int(best_res.nobs)
-    metrics['notebook_05']['garch_gamma'] = float(best_res.params['gamma[1]'])
-    metrics['notebook_05']['garch_alpha'] = float(best_res.params['alpha[1]'])
-    metrics['notebook_05']['garch_beta'] = float(best_res.params['beta[1]'])
-except (NameError, AttributeError, KeyError) as e:
-    print(f'Skipped garch_nu: {e}')
+metrics['notebook_05'].update({
+    'garch_dist':        best_spec['dist'],
+    'garch_shape':       dict(zip(shape_names, shape)),
+    'garch_p_neg':       p_neg,
+    'garch_mu':          float(p['mu']),
+    'garch_alpha':       float(a),
+    'garch_gamma':       float(g),
+    'garch_beta':        float(b),
+    'garch_persistence': float(a + b + g * p_neg),
+    'garch_nobs':        int(best_res.nobs),
+    # Estimated parameters excluding the constant mean, the count Notebook 06
+    # quotes when comparing model sizes.
+    'garch_n_params':    int(len(p) - 1),
+})
 
 metrics_path.write_text(json.dumps(metrics, indent=2))
 
@@ -2806,26 +3199,35 @@ for k, v in metrics['notebook_05'].items():
 ```
 
     Exported notebook_05 metrics to C:\Users\Mena\Documents\Python\sp500-market-intelligence\data\locked_metrics.json
-      best_label: GJR-GARCH(1,1,1) — Student's t
-      wf_rmse_garch: 0.0052333492427069535
-      wf_mae_garch: 0.004000328198434986
+      best_label: GJR-GARCH(1,1,1) — skewed Student's t
+      runnerup_label: GJR-GARCH(1,1,1) — Student's t
+      wf_rmse_garch: 0.005236451386802539
+      wf_mae_garch: 0.004004899081652212
+      wf_rmse_runnerup: 0.0052333492427069535
       wf_rmse_persistence: 0.0075617841947451326
       wf_mae_persistence: 0.005685889011073224
-      wf_rmse_ewma: 0.005694124773980802
-      wf_mae_ewma: 0.004599503769557551
-      improvement_rmse_pct: 30.792137041629207
-      improvement_vs_ewma_pct: 8.092122135773245
-      dm_stat_vs_persistence: 5.519348135344194
-      dm_p_vs_persistence: 3.402595027957034e-08
-      dm_stat_vs_ewma: 4.122247930534401
-      dm_p_vs_ewma: 3.751930676276771e-05
-      dm_stat_vs_ewma_qlike: -1.6634031687963249
-      dm_p_vs_ewma_qlike: 0.0962317592439883
+      wf_rmse_ewma: 0.005366311915722928
+      wf_mae_ewma: 0.0040804419879624685
+      improvement_rmse_pct: 30.751113071416707
+      improvement_vs_ewma_pct: 2.4199213716948993
+      dm_stat_vs_persistence: 5.509968834327064
+      dm_p_vs_persistence: 3.5889723859483524e-08
+      dm_stat_vs_ewma: 1.7684927735850506
+      dm_p_vs_ewma: 0.0769785592278942
+      qlike_garch: 1.6353786665435341
+      qlike_ewma: 1.6962735076059883
+      dm_stat_vs_ewma_qlike: 1.6170685933042492
+      dm_p_vs_ewma_qlike: 0.10586347533729468
       ewma_lambda: 0.94
-      garch_persistence: 0.9827144672759196
-      garch_nu: 6.760109587620447
-      garch_nu_nobs: 6441
-      garch_gamma: 0.20332176932874713
+      ewma_abs_factor: 0.7978845608028654
+      garch_dist: skewt
+      garch_shape: {'eta': 7.4860859169257195, 'lambda': -0.14955043971231133}
+      garch_p_neg: 0.4730010391405909
+      garch_mu: 0.027849516594884077
       garch_alpha: 0.0
-      garch_beta: 0.881053582611546
+      garch_gamma: 0.20888460958582072
+      garch_beta: 0.8801426246017412
+      garch_persistence: 0.978945261996311
+      garch_nobs: 6441
+      garch_n_params: 6
     
