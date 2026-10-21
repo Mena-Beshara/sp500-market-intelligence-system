@@ -55,20 +55,27 @@ PATIENCE    = 10
 MLP_HIDDEN  = 64    # single hidden layer width
 
 # ── Seeds ──
-# The walk-forward is repeated once per seed. Two runs of an earlier version
-# of this notebook, identical in code, seed and data, produced LSTM RMSE
-# 0.005207 and 0.006840. A single run cannot express that, so the evaluation
-# reports the spread across seeds instead of one point estimate.
+# The walk-forward is repeated once per seed. A fixed seed does not make
+# TensorFlow deterministic on CPU (section 5), so a single run is one draw
+# from a distribution; the evaluation reports the spread across seeds
+# instead of one point estimate.
 #
 # SEED_LIST[0] is the primary seed: its forecasts feed every diagnostic
 # section below, so those sections remain directly comparable to Notebook 05.
 # The remaining seeds exist to measure variability.
 #
-# Cost scales linearly. Three seeds is roughly an hour on CPU. Adding seeds
-# tightens the estimate of the spread; removing them widens the uncertainty
-# about the uncertainty.
+# Cost scales linearly with the number of seeds; the walk-forward time is
+# exported as notebook_06.wf_total_time_s. Adding seeds tightens the
+# estimate of the spread; removing them widens the uncertainty about the
+# uncertainty.
 SEED_LIST = [42, 43, 44]
 SEED = SEED_LIST[0]
+
+def fmt_p(p, label=True):
+    """Format a p-value; values below 1e-4 print as an inequality.
+    label=False drops the leading 'p' for use in table cells."""
+    prefix = 'p ' if label else ''
+    return f'{prefix}< 0.0001' if p < 1e-4 else f'{prefix}{"= " if label else ""}{p:.4f}'
 
 np.random.seed(SEED)
 tf.random.set_seed(SEED)
@@ -471,14 +478,6 @@ backpropagation, and early stopping converts them into discrete outcomes: a
 validation loss that crosses its threshold one epoch earlier produces a
 different set of weights.
 
-An earlier version of this notebook stated that model ranking was stable and
-only the final decimal places moved. Two executions of that version, identical
-in code, seed, data and hardware, refuted it. LSTM walk-forward RMSE came out
-at 0.005207 and then 0.006840, a 31% degradation. Residual autocorrelation at
-21 lags moved from p = 0.94 to p = 3.6e-34. The calibration slope fell from
-0.645 to 0.079. Those are not decimal places; they are different conclusions
-about the same model.
-
 This notebook therefore repeats the walk-forward across several seeds and
 reports the spread. GARCH, by contrast, is deterministic: the same data
 produces the same coefficients every time, which is itself a deployment
@@ -499,8 +498,8 @@ FEATURE_COLS = [
     'atr_pct_14',      # average true range as a share of the close
     'bb_width',        # Bollinger Band width
     'vol_rank_30',     # volatility percentile rank
-    'vol_ratio_10_60', # short vs medium volatility ratio
-    'volume_rel_21',   # yesterday's volume relative to its 21-day average]
+    'vol_ratio_10_60', # short vs long volatility ratio
+    'volume_rel_21',   # yesterday's volume relative to its 21-day average
 ]
 
 missing = [c for c in FEATURE_COLS if c not in df.columns]
@@ -520,10 +519,10 @@ print(f'Target:   |{TARGET_COL}|')
 GARCH uses only the return series and its own conditional variance recursion.
 The neural networks get a richer input set: three rolling volatility windows
 (10, 21, 60 days), RSI, ATR as a share of the closing price, Bollinger Band
-width, a volatility percentile rank, a short-to-medium volatility ratio, and
+width, a volatility percentile rank, a short-to-long volatility ratio, and
 yesterday's volume relative to its trailing 21-day average. ATR and volume
 enter in these scale-free forms because, measured in index points and shares,
-both drift with the market across the sample.
+both drift with the market across the sample.   
 
 Lagged return features from Notebook 03 are excluded because the 21-day
 lookback window already provides that information through the `log_returns`
@@ -835,127 +834,127 @@ print(f'All seeds complete in {wf_total:.0f}s')
     Seed 42:
     
 
-      block  1/12: LSTM  16ep  25.9s | MLP  34ep  17.5s
+      block  1/12: LSTM  15ep  23.4s | MLP  59ep  30.7s
     
 
-      block  2/12: LSTM  62ep  80.9s | MLP  55ep  26.9s
+      block  2/12: LSTM  14ep  21.1s | MLP  36ep  19.7s
     
 
-    WARNING:tensorflow:5 out of the last 5 calls to <function TensorFlowTrainer.make_predict_function.<locals>.one_step_on_data_distributed at 0x000001BF86819A80> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+    WARNING:tensorflow:5 out of the last 5 calls to <function TensorFlowTrainer.make_predict_function.<locals>.one_step_on_data_distributed at 0x0000019EE5235BC0> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
     
 
-    WARNING:tensorflow:6 out of the last 6 calls to <function TensorFlowTrainer.make_predict_function.<locals>.one_step_on_data_distributed at 0x000001BF879EE340> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+    WARNING:tensorflow:6 out of the last 6 calls to <function TensorFlowTrainer.make_predict_function.<locals>.one_step_on_data_distributed at 0x0000019EE640E480> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
     
 
-      block  3/12: LSTM  57ep  75.1s | MLP  71ep  37.8s
+      block  3/12: LSTM  97ep 128.8s | MLP  34ep  16.8s
     
 
-      block  4/12: LSTM  14ep  20.1s | MLP  28ep  15.7s
+      block  4/12: LSTM  69ep  88.5s | MLP  39ep  19.9s
     
 
-      block  5/12: LSTM  15ep  22.6s | MLP  35ep  18.1s
+      block  5/12: LSTM  61ep  79.1s | MLP  89ep  43.7s
     
 
-      block  6/12: LSTM  77ep 102.7s | MLP  44ep  26.4s
+      block  6/12: LSTM  58ep  80.9s | MLP  36ep  20.9s
     
 
-      block  7/12: LSTM  88ep 117.8s | MLP  40ep  22.1s
+      block  7/12: LSTM  80ep 103.6s | MLP  41ep  19.8s
     
 
-      block  8/12: LSTM  16ep  22.6s | MLP  36ep  19.0s
+      block  8/12: LSTM  15ep  20.9s | MLP  55ep  26.4s
     
 
-      block  9/12: LSTM  73ep  99.0s | MLP  32ep  18.0s
+      block  9/12: LSTM  14ep  20.4s | MLP  36ep  17.6s
     
 
-      block 10/12: LSTM  58ep  76.8s | MLP  18ep   9.6s
+      block 10/12: LSTM  14ep  19.9s | MLP  29ep  14.4s
     
 
-      block 11/12: LSTM  14ep  20.1s | MLP  26ep  13.9s
+      block 11/12: LSTM  16ep  22.4s | MLP  27ep  13.5s
     
 
-      block 12/12: LSTM  16ep  20.2s | MLP  23ep  11.5s
-      -> LSTM RMSE 0.005387 | MLP RMSE 0.007588 | 921s
+      block 12/12: LSTM  44ep  51.5s | MLP  29ep  13.6s
+      -> LSTM RMSE 0.005255 | MLP RMSE 0.007561 | 917s
     
     Seed 43:
     
 
-      block  1/12: LSTM  15ep  21.0s | MLP  25ep  13.4s
+      block  1/12: LSTM  15ep  20.8s | MLP  37ep  18.2s
     
 
-      block  2/12: LSTM  15ep  21.2s | MLP  47ep  24.9s
+      block  2/12: LSTM  70ep  93.2s | MLP  28ep  13.9s
     
 
-      block  3/12: LSTM  63ep  82.6s | MLP  37ep  18.5s
+      block  3/12: LSTM  71ep  96.3s | MLP  55ep  30.9s
     
 
-      block  4/12: LSTM  56ep  73.7s | MLP  53ep  27.5s
+      block  4/12: LSTM  59ep  84.5s | MLP  30ep  15.6s
     
 
-      block  5/12: LSTM  15ep  21.5s | MLP  69ep  34.2s
+      block  5/12: LSTM  50ep  69.6s | MLP  33ep  18.4s
     
 
-      block  6/12: LSTM  16ep  22.4s | MLP  45ep  22.3s
+      block  6/12: LSTM  14ep  20.8s | MLP  33ep  17.4s
     
 
-      block  7/12: LSTM  15ep  20.5s | MLP  42ep  20.0s
+      block  7/12: LSTM  15ep  23.3s | MLP  29ep  16.0s
     
 
-      block  8/12: LSTM  81ep 105.0s | MLP  40ep  19.6s
+      block  8/12: LSTM  66ep  89.0s | MLP  37ep  19.1s
     
 
-      block  9/12: LSTM  15ep  21.1s | MLP  26ep  14.0s
+      block  9/12: LSTM  14ep  20.6s | MLP  22ep  12.0s
     
 
-      block 10/12: LSTM  57ep  74.4s | MLP  22ep  11.7s
+      block 10/12: LSTM  15ep  21.8s | MLP  27ep  14.1s
     
 
-      block 11/12: LSTM  14ep  20.6s | MLP  38ep  19.7s
+      block 11/12: LSTM  61ep  81.5s | MLP  21ep  10.7s
     
 
-      block 12/12: LSTM  15ep  19.2s | MLP  38ep  19.2s
-      -> LSTM RMSE 0.005473 | MLP RMSE 0.008223 | 748s
+      block 12/12: LSTM  57ep  67.4s | MLP  25ep  12.1s
+      -> LSTM RMSE 0.005415 | MLP RMSE 0.007821 | 887s
     
     Seed 44:
     
 
-      block  1/12: LSTM  54ep  70.7s | MLP  25ep  12.7s
+      block  1/12: LSTM  14ep  19.7s | MLP  22ep  11.2s
     
 
-      block  2/12: LSTM  15ep  22.1s | MLP  40ep  20.7s
+      block  2/12: LSTM  60ep  80.8s | MLP  24ep  12.2s
     
 
-      block  3/12: LSTM  17ep  23.9s | MLP  62ep  30.5s
+      block  3/12: LSTM  91ep 123.1s | MLP  38ep  20.7s
     
 
-      block  4/12: LSTM  15ep  21.6s | MLP  32ep  15.1s
+      block  4/12: LSTM  15ep  40.4s | MLP  31ep  34.8s
     
 
-      block  5/12: LSTM  79ep 103.4s | MLP  46ep  21.4s
+      block  5/12: LSTM  48ep 117.7s | MLP  48ep  22.1s
     
 
-      block  6/12: LSTM  69ep  89.7s | MLP  28ep  13.3s
+      block  6/12: LSTM  72ep  94.8s | MLP  28ep  13.7s
     
 
-      block  7/12: LSTM  75ep  99.0s | MLP  23ep  12.1s
+      block  7/12: LSTM  16ep  22.8s | MLP  44ep  21.4s
     
 
-      block  8/12: LSTM  78ep 103.6s | MLP  26ep  13.5s
+      block  8/12: LSTM  15ep  21.5s | MLP  20ep   9.9s
     
 
-      block  9/12: LSTM  16ep  22.9s | MLP  35ep  19.2s
+      block  9/12: LSTM  16ep  23.5s | MLP  20ep  11.4s
     
 
-      block 10/12: LSTM  62ep  84.1s | MLP  34ep  18.7s
+      block 10/12: LSTM  66ep  88.2s | MLP  25ep  14.3s
     
 
-      block 11/12: LSTM  16ep  23.5s | MLP  24ep  12.7s
+      block 11/12: LSTM  14ep  22.0s | MLP  31ep  17.0s
     
 
-      block 12/12: LSTM  15ep  19.0s | MLP  29ep  14.6s
-      -> LSTM RMSE 0.005417 | MLP RMSE 0.007547 | 888s
+      block 12/12: LSTM  14ep  18.1s | MLP  26ep  12.3s
+      -> LSTM RMSE 0.005328 | MLP RMSE 0.007373 | 874s
     
-    All seeds complete in 2575s
+    All seeds complete in 2696s
     
 
 ## 10. Seed stability
@@ -995,15 +994,19 @@ mlp_rmse_sd = mlp_rmses.std(ddof=1) if len(mlp_rmses) > 1 else 0.0
 mlp_spread_pct = (mlp_rmses.max() - mlp_rmses.min()) / mlp_rmses.min() * 100
 
 # Does the seed change the answer to the notebook's question?
-seeds_beating_garch = int((lstm_rmses < GARCH_RMSE).sum())
+# Seeds are counted with the same materiality rule as the primary-seed
+# comparison in section 11: within the threshold is a tie, not a win.
+lstm_garch_rel_by_seed = (lstm_rmses - GARCH_RMSE) / GARCH_RMSE
+seeds_beating_garch = int((lstm_garch_rel_by_seed <= -RMSE_MATERIAL).sum())
+seeds_tied_garch = int((np.abs(lstm_garch_rel_by_seed) < RMSE_MATERIAL).sum())
 seeds_beating_pers = int((lstm_rmses < pers_rmse_check).sum())
 
 print(f'LSTM RMSE across {len(SEED_LIST)} seeds:')
 print(f'  mean {lstm_rmse_mean:.6f}, sd {lstm_rmse_sd:.6f}')
 print(f'  range {lstm_rmse_min:.6f} to {lstm_rmse_max:.6f} '
       f'({lstm_spread_pct:.1f}% spread)')
-print(f'  seeds beating GARCH ({GARCH_RMSE:.6f}): '
-      f'{seeds_beating_garch}/{len(SEED_LIST)}')
+print(f'  seeds beating GARCH ({GARCH_RMSE:.6f}) beyond {RMSE_MATERIAL:.0%}: '
+      f'{seeds_beating_garch}/{len(SEED_LIST)}, tied: {seeds_tied_garch}')
 print(f'  seeds beating persistence ({pers_rmse_check:.6f}): '
       f'{seeds_beating_pers}/{len(SEED_LIST)}')
 ```
@@ -1011,37 +1014,37 @@ print(f'  seeds beating persistence ({pers_rmse_check:.6f}): '
 
 <style type="text/css">
 </style>
-<table id="T_641c0">
+<table id="T_36f5f">
   <thead>
     <tr>
-      <th id="T_641c0_level0_col0" class="col_heading level0 col0" >Seed</th>
-      <th id="T_641c0_level0_col1" class="col_heading level0 col1" >LSTM RMSE</th>
-      <th id="T_641c0_level0_col2" class="col_heading level0 col2" >LSTM MAE</th>
-      <th id="T_641c0_level0_col3" class="col_heading level0 col3" >MLP RMSE</th>
-      <th id="T_641c0_level0_col4" class="col_heading level0 col4" >LSTM epochs (mean)</th>
+      <th id="T_36f5f_level0_col0" class="col_heading level0 col0" >Seed</th>
+      <th id="T_36f5f_level0_col1" class="col_heading level0 col1" >LSTM RMSE</th>
+      <th id="T_36f5f_level0_col2" class="col_heading level0 col2" >LSTM MAE</th>
+      <th id="T_36f5f_level0_col3" class="col_heading level0 col3" >MLP RMSE</th>
+      <th id="T_36f5f_level0_col4" class="col_heading level0 col4" >LSTM epochs (mean)</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td id="T_641c0_row0_col0" class="data row0 col0" >42</td>
-      <td id="T_641c0_row0_col1" class="data row0 col1" >0.005387</td>
-      <td id="T_641c0_row0_col2" class="data row0 col2" >0.003935</td>
-      <td id="T_641c0_row0_col3" class="data row0 col3" >0.007588</td>
-      <td id="T_641c0_row0_col4" class="data row0 col4" >42.2</td>
+      <td id="T_36f5f_row0_col0" class="data row0 col0" >42</td>
+      <td id="T_36f5f_row0_col1" class="data row0 col1" >0.005255</td>
+      <td id="T_36f5f_row0_col2" class="data row0 col2" >0.003875</td>
+      <td id="T_36f5f_row0_col3" class="data row0 col3" >0.007561</td>
+      <td id="T_36f5f_row0_col4" class="data row0 col4" >41.4</td>
     </tr>
     <tr>
-      <td id="T_641c0_row1_col0" class="data row1 col0" >43</td>
-      <td id="T_641c0_row1_col1" class="data row1 col1" >0.005473</td>
-      <td id="T_641c0_row1_col2" class="data row1 col2" >0.003920</td>
-      <td id="T_641c0_row1_col3" class="data row1 col3" >0.008223</td>
-      <td id="T_641c0_row1_col4" class="data row1 col4" >31.4</td>
+      <td id="T_36f5f_row1_col0" class="data row1 col0" >43</td>
+      <td id="T_36f5f_row1_col1" class="data row1 col1" >0.005415</td>
+      <td id="T_36f5f_row1_col2" class="data row1 col2" >0.003856</td>
+      <td id="T_36f5f_row1_col3" class="data row1 col3" >0.007821</td>
+      <td id="T_36f5f_row1_col4" class="data row1 col4" >42.2</td>
     </tr>
     <tr>
-      <td id="T_641c0_row2_col0" class="data row2 col0" >44</td>
-      <td id="T_641c0_row2_col1" class="data row2 col1" >0.005417</td>
-      <td id="T_641c0_row2_col2" class="data row2 col2" >0.003885</td>
-      <td id="T_641c0_row2_col3" class="data row2 col3" >0.007547</td>
-      <td id="T_641c0_row2_col4" class="data row2 col4" >42.6</td>
+      <td id="T_36f5f_row2_col0" class="data row2 col0" >44</td>
+      <td id="T_36f5f_row2_col1" class="data row2 col1" >0.005328</td>
+      <td id="T_36f5f_row2_col2" class="data row2 col2" >0.003862</td>
+      <td id="T_36f5f_row2_col3" class="data row2 col3" >0.007373</td>
+      <td id="T_36f5f_row2_col4" class="data row2 col4" >36.8</td>
     </tr>
   </tbody>
 </table>
@@ -1049,9 +1052,9 @@ print(f'  seeds beating persistence ({pers_rmse_check:.6f}): '
 
 
     LSTM RMSE across 3 seeds:
-      mean 0.005426, sd 0.000043
-      range 0.005387 to 0.005473 (1.6% spread)
-      seeds beating GARCH (0.005236): 0/3
+      mean 0.005333, sd 0.000080
+      range 0.005255 to 0.005415 (3.0% spread)
+      seeds beating GARCH (0.005236) beyond 1%: 0/3, tied: 1
       seeds beating persistence (0.007562): 3/3
     
 
@@ -1080,41 +1083,24 @@ fig.update_layout(
 )
 fig.show()
 
-if seeds_beating_garch == 0:
+seeds_losing_garch = len(SEED_LIST) - seeds_beating_garch - seeds_tied_garch
+outcome_counts = (
+    f"{seeds_beating_garch} beat {GARCH_LABEL} beyond the "
+    f"{RMSE_MATERIAL:.0%} materiality threshold, {seeds_tied_garch} tied "
+    f"within it and {seeds_losing_garch} fell short beyond it"
+)
+if max(seeds_beating_garch, seeds_tied_garch,
+       seeds_losing_garch) == len(SEED_LIST):
     stability_verdict = (
-        f"No seed produced an LSTM that beat {GARCH_LABEL}. The conclusion "
-        "does not depend on which run is reported."
-    )
-elif seeds_beating_garch == len(SEED_LIST):
-    stability_verdict = (
-        f"Every seed produced an LSTM that beat {GARCH_LABEL}. The conclusion "
-        "does not depend on which run is reported."
+        f"Of {len(SEED_LIST)} seeds, {outcome_counts}. Every seed gives the "
+        "same answer, so the conclusion does not depend on which run is "
+        "reported."
     )
 else:
     stability_verdict = (
-        f"**{seeds_beating_garch} of {len(SEED_LIST)} seeds** produced an LSTM "
-        f"that beat {GARCH_LABEL} and "
-        f"{len(SEED_LIST) - seeds_beating_garch} did not. The answer to this "
+        f"Of {len(SEED_LIST)} seeds, {outcome_counts}. The answer to this "
         "notebook's central question depends on which run happens to be "
         "reported, which means no single run should be reported as the answer."
-    )
-
-if mlp_spread_pct < lstm_spread_pct / 5:
-    arch_note = (
-        f"The MLP's spread is {mlp_spread_pct:.1f}% against the LSTM's "
-        f"{lstm_spread_pct:.1f}%, on identical data, splits and hardware. "
-        f"The instability is therefore a property of the recurrent "
-        f"architecture rather than of neural networks on this problem. "
-        f"Recurrence applies the same weight matrix once per timestep, so a "
-        f"difference in the low-order bits is amplified {LOOKBACK} times "
-        f"before the loss is computed. The feed-forward path has no such "
-        f"chain."
-    )
-else:
-    arch_note = (
-        f"Both architectures show comparable spread ({lstm_spread_pct:.1f}% "
-        f"LSTM, {mlp_spread_pct:.1f}% MLP), so the instability is not "
-        f"specific to recurrence."
     )
 
 display(Markdown(f"""
@@ -1128,10 +1114,11 @@ smaller value, with standard deviation {lstm_rmse_sd:.6f}. The MLP spread is
 {stability_verdict}
 
 Every element of these runs is identical except the seed: same data, same
-splits, same architecture, same refit schedule, same hardware. The variation
-is not a modelling choice, it is the floor of what this setup can resolve. Any
-LSTM-versus-GARCH difference smaller than {lstm_spread_pct:.0f}% is inside
-that floor.
+splits, same architecture, same refit schedule, same hardware. The seed alone
+moves LSTM RMSE by {lstm_spread_pct:.1f}%, so any single seed's gap to
+{GARCH_LABEL} should be read against that spread. That is why the verdict
+above counts every seed against the {RMSE_MATERIAL:.0%} materiality threshold
+rather than relying on one.
 
 GARCH has no equivalent spread. Maximum likelihood on a fixed sample returns
 the same coefficients on every run, so its {GARCH_RMSE:.6f} is a property of
@@ -1152,18 +1139,19 @@ draw from the distribution above.
 
 ### What the spread means
 
-LSTM walk-forward RMSE ranges from 0.005387 to 0.005473
-across 3 seeds, a spread of 1.6% of the
-smaller value, with standard deviation 0.000043. The MLP spread is
-9.0%.
+LSTM walk-forward RMSE ranges from 0.005255 to 0.005415
+across 3 seeds, a spread of 3.0% of the
+smaller value, with standard deviation 0.000080. The MLP spread is
+6.1%.
 
-No seed produced an LSTM that beat GJR-GARCH(1,1,1) — skewed Student's t. The conclusion does not depend on which run is reported.
+Of 3 seeds, 0 beat GJR-GARCH(1,1,1) — skewed Student's t beyond the 1% materiality threshold, 1 tied within it and 2 fell short beyond it. The answer to this notebook's central question depends on which run happens to be reported, which means no single run should be reported as the answer.
 
 Every element of these runs is identical except the seed: same data, same
-splits, same architecture, same refit schedule, same hardware. The variation
-is not a modelling choice, it is the floor of what this setup can resolve. Any
-LSTM-versus-GARCH difference smaller than 2% is inside
-that floor.
+splits, same architecture, same refit schedule, same hardware. The seed alone
+moves LSTM RMSE by 3.0%, so any single seed's gap to
+GJR-GARCH(1,1,1) — skewed Student's t should be read against that spread. That is why the verdict
+above counts every seed against the 1% materiality threshold
+rather than relying on one.
 
 GARCH has no equivalent spread. Maximum likelihood on a fixed sample returns
 the same coefficients on every run, so its 0.005236 is a property of
@@ -1237,13 +1225,13 @@ print(f'  MLP vs GARCH:        {mlp_vs_garch_rmse:+.1f}% RMSE')
     </tr>
     <tr>
       <th>MLP (64 hidden)</th>
-      <td>0.007588</td>
-      <td>0.005570</td>
+      <td>0.007561</td>
+      <td>0.005709</td>
     </tr>
     <tr>
       <th>LSTM (32 units)</th>
-      <td>0.005387</td>
-      <td>0.003935</td>
+      <td>0.005255</td>
+      <td>0.003875</td>
     </tr>
   </tbody>
 </table>
@@ -1252,10 +1240,10 @@ print(f'  MLP vs GARCH:        {mlp_vs_garch_rmse:+.1f}% RMSE')
 
     
     Primary seed 42:
-      LSTM vs persistence: +28.8% RMSE
-      LSTM vs GARCH:       -2.9% RMSE
-      MLP vs persistence:  -0.4% RMSE
-      MLP vs GARCH:        -44.9% RMSE
+      LSTM vs persistence: +30.5% RMSE
+      LSTM vs GARCH:       -0.4% RMSE
+      MLP vs persistence:  +0.0% RMSE
+      MLP vs GARCH:        -44.4% RMSE
     
 
 
@@ -1315,7 +1303,8 @@ else:
     cost_note = (
         f" Whether that margin justifies {lstm_params:,} parameters and "
         f"{wf_total_lstm:.0f} seconds of training is a deployment question, "
-        f"and section 10 shows the margin is not stable across seeds."
+        f"and section 10 found {seeds_beating_garch} of {len(SEED_LIST)} "
+        f"seeds beating {GARCH_LABEL} beyond the materiality threshold."
     )
 
 if mlp_garch_tie:
@@ -1347,24 +1336,24 @@ than at face value.
 """))
 ```
 
-    LSTM vs GARCH: 2.88e-02 relative (material)
-    MLP vs GARCH:  4.49e-01 relative (material)
+    LSTM vs GARCH: 3.62e-03 relative (tie)
+    MLP vs GARCH:  4.44e-01 relative (material)
     
 
 
 
 ### Interpretation
 
-On this seed GJR-GARCH(1,1,1) — skewed Student's t beat the LSTM by 2.9% on RMSE (0.005236 against 0.005387). The MLP fell short by 44.9%, and did not beat persistence either (0.007588 against 0.007562). The margin comes with a cost asymmetry: GARCH used 6 parameters and no training loop, the LSTM 5,537 parameters and 684 seconds.
+On this seed the LSTM and GJR-GARCH(1,1,1) — skewed Student's t are level: RMSE differs by 3.62e-03 in relative terms (0.005255 against 0.005236), and on MAE the LSTM is lower (0.003875 against 0.004005). The MLP fell short by 44.4%. Parity is not an improvement, and it is bought at a price: GJR-GARCH(1,1,1) — skewed Student's t reaches the same accuracy with 6 parameters and no training loop, against 5,537 parameters and 660 seconds across 12 refits.
 
 The LSTM outperformed the MLP by
-29.0% on RMSE. Whether that gap is distinguishable from noise is
+30.5% on RMSE. Whether that gap is distinguishable from noise is
 tested below rather than assumed here.
 
 Two caveats govern everything in this section. It is a single
 252-day test window, so the ranking could differ under another market
 regime. And it is a single seed: section 10 measured a
-1.6% spread in LSTM RMSE across 3 otherwise
+3.0% spread in LSTM RMSE across 3 otherwise
 identical runs, so the figures above should be read against that spread rather
 than at face value.
 
@@ -1439,8 +1428,8 @@ series from Notebook 05.
 |---|---|---|---|
 | Persistence | 0.007562 | [0.006327, 0.008864] | 0.002536 |
 | GJR-GARCH(1,1,1) — skewed Student's t | 0.005236 | (not computed — see NB05) | — |
-| MLP (64 hidden) | 0.007588 | [0.006613, 0.008673] | 0.002060 |
-| LSTM (32 units) | 0.005387 | [0.004577, 0.006206] | 0.001629 |
+| MLP (64 hidden) | 0.007561 | [0.006716, 0.008495] | 0.001779 |
+| LSTM (32 units) | 0.005255 | [0.004454, 0.006103] | 0.001649 |
 
 Based on 2,000 bootstrap replications with 21-day blocks, on the
 primary seed (42).
@@ -1492,9 +1481,9 @@ dm_lm, p_lm = diebold_mariano_hac(mlp_errors, lstm_errors)
 display(Markdown(f"""
 | Comparison | DM statistic | p-value | Significant at 5%? |
 |---|---|---|---|
-| LSTM vs Persistence | {dm_lp:.3f} | {p_lp:.4f} | {'Yes' if p_lp < 0.05 else 'No'} |
-| MLP vs Persistence | {dm_mp:.3f} | {p_mp:.4f} | {'Yes' if p_mp < 0.05 else 'No'} |
-| LSTM vs MLP | {dm_lm:.3f} | {p_lm:.4f} | {'Yes' if p_lm < 0.05 else 'No'} |
+| LSTM vs Persistence | {dm_lp:.3f} | {fmt_p(p_lp, label=False)} | {'Yes' if p_lp < 0.05 else 'No'} |
+| MLP vs Persistence | {dm_mp:.3f} | {fmt_p(p_mp, label=False)} | {'Yes' if p_mp < 0.05 else 'No'} |
+| LSTM vs MLP | {dm_lm:.3f} | {fmt_p(p_lm, label=False)} | {'Yes' if p_lm < 0.05 else 'No'} |
 
 The variance estimator uses a Newey-West (Bartlett kernel) correction for
 autocorrelation in the loss differential. A direct neural-network-versus-GARCH
@@ -1507,9 +1496,9 @@ currently exported.
 
 | Comparison | DM statistic | p-value | Significant at 5%? |
 |---|---|---|---|
-| LSTM vs Persistence | 5.736 | 0.0000 | Yes |
-| MLP vs Persistence | -0.080 | 0.9361 | No |
-| LSTM vs MLP | 8.339 | 0.0000 | Yes |
+| LSTM vs Persistence | 5.987 | < 0.0001 | Yes |
+| MLP vs Persistence | 0.002 | 0.9981 | No |
+| LSTM vs MLP | 8.954 | < 0.0001 | Yes |
 
 The variance estimator uses a Newey-West (Bartlett kernel) correction for
 autocorrelation in the loss differential. A direct neural-network-versus-GARCH
@@ -1577,19 +1566,19 @@ needs one fit because repeating it changes nothing.
 |---|---|---|---|
 | Persistence | 0 s | 0 s | — |
 | GJR-GARCH(1,1,1) — skewed Student's t | (see NB05) | (deterministic, one fit suffices) | — |
-| MLP (64 hidden) | 237 s | 686 s | 37 |
-| LSTM (32 units) | 684 s | 1871 s | 42 |
+| MLP (64 hidden) | 257 s | 657 s | 42 |
+| LSTM (32 units) | 660 s | 2022 s | 41 |
 
-Total wall clock for the walk-forward across all seeds: 2575 s.
+Total wall clock for the walk-forward across all seeds: 2696 s.
 
 ### Inference speed (252 observations)
 
 | Model | Time |
 |---|---|
-| Persistence | 0.09 ms |
+| Persistence | 0.14 ms |
 | GJR-GARCH(1,1,1) — skewed Student's t | (see NB05) |
-| MLP (64 hidden) | 93.2 ms |
-| LSTM (32 units) | 156.8 ms |
+| MLP (64 hidden) | 82.8 ms |
+| LSTM (32 units) | 130.4 ms |
 
 The multi-seed column is the honest training cost. A model that must be run
 several times before its output can be trusted costs several runs, and GARCH
@@ -1636,16 +1625,21 @@ fig.show()
 first_stopped = epochs_used_lstm[0]
 last_stopped = epochs_used_lstm[-1]
 last_train_size = test_start + (n_blocks - 1) * REFIT_EVERY
-samples_per_param = last_train_size / lstm_params
+# Same hold-out rule as run_walk_forward: the final 10% (at least LOOKBACK)
+# is reserved for early-stopping validation and not fitted on.
+last_val_size = max(int(0.1 * last_train_size), LOOKBACK)
+last_fit_size = last_train_size - last_val_size
+samples_per_param = last_fit_size / lstm_params
 
 display(Markdown(f"""
 LSTM early stopping triggered at epoch {first_stopped} (first block) and
 epoch {last_stopped} (last block).
 {'Validation loss stabilised before the epoch ceiling, suggesting the network reached its capacity limit rather than exhausting the training budget.' if max(first_stopped, last_stopped) < EPOCHS - PATIENCE else 'The network used most of its epoch budget, suggesting it was still learning when stopped.'}
 
-The last block trained on {last_train_size:,} sequences against
-{lstm_params:,} parameters, a ratio of {samples_per_param:.1f}:1.
-{'That is comfortable.' if samples_per_param >= 20 else 'Deep learning generally wants 100:1 or more, so this is the data-limited regime, and it is the most likely source of the seed instability measured in section 10.'}
+The last refit had {last_train_size:,} sequences available: {last_fit_size:,}
+were fitted on and {last_val_size:,} were held out for early stopping, against
+{lstm_params:,} trainable parameters, a ratio of {samples_per_param:.1f}
+fitted sequences per parameter.
 """))
 ```
 
@@ -1653,13 +1647,14 @@ The last block trained on {last_train_size:,} sequences against
 
 
 
-LSTM early stopping triggered at epoch 16 (first block) and
-epoch 16 (last block).
+LSTM early stopping triggered at epoch 15 (first block) and
+epoch 44 (last block).
 Validation loss stabilised before the epoch ceiling, suggesting the network reached its capacity limit rather than exhausting the training budget.
 
-The last block trained on 6,399 sequences against
-5,537 parameters, a ratio of 1.2:1.
-Deep learning generally wants 100:1 or more, so this is the data-limited regime, and it is the most likely source of the seed instability measured in section 10.
+The last refit had 6,399 sequences available: 5,760
+were fitted on and 639 were held out for early stopping, against
+5,537 trainable parameters, a ratio of 1.0
+fitted sequences per parameter.
 
 
 
@@ -1791,16 +1786,16 @@ display(Markdown(lb_interp))
 
 | Model           |   Lags |   LB statistic |   p-value | Autocorrelated at 5%?   |
 |:----------------|-------:|---------------:|----------:|:------------------------|
-| LSTM (32 units) |     10 |           5.44 | 0.86      | No                      |
-| LSTM (32 units) |     21 |          10.07 | 0.978     | No                      |
-| MLP (64 hidden) |     10 |         101.79 | 2.388e-17 | Yes                     |
-| MLP (64 hidden) |     21 |         107.61 | 1.272e-13 | Yes                     |
+| LSTM (32 units) |     10 |           7.23 | 0.7039    | No                      |
+| LSTM (32 units) |     21 |          11.81 | 0.9446    | No                      |
+| MLP (64 hidden) |     10 |          51.82 | 1.231e-07 | Yes                     |
+| MLP (64 hidden) |     21 |          57.3  | 3.249e-05 | Yes                     |
 | Persistence     |     10 |          73.58 | 8.974e-12 | Yes                     |
 | Persistence     |     21 |          80.67 | 6.227e-09 | Yes                     |
 
 
 
-LSTM residuals show no significant autocorrelation at 21 lags (p = 0.978). The remaining error behaves like white noise on this seed. MLP residuals are significantly autocorrelated (p = 1.272e-13).
+LSTM residuals show no significant autocorrelation at 21 lags (p = 0.9446). The remaining error behaves like white noise on this seed. MLP residuals are significantly autocorrelated (p = 3.249e-05).
 
 
 ### Forecast calibration
@@ -1857,10 +1852,15 @@ fig.show()
 
 cal_lines = []
 for label, s in cal_summary.items():
-    direction = ('too dispersed relative to realised values'
-                 if s['slope'] < 0.9 else
-                 'too compressed relative to realised values'
-                 if s['slope'] > 1.1 else 'close to proportional')
+    if s['slope'] <= 0:
+        direction = ('not positively related to realised values: higher '
+                     'forecasts did not go with larger realised moves')
+    elif s['slope'] < 0.9:
+        direction = 'too dispersed relative to realised values'
+    elif s['slope'] > 1.1:
+        direction = 'too compressed relative to realised values'
+    else:
+        direction = 'close to proportional'
     cal_lines.append(
         f"- **{label}**: slope {s['slope']:.3f}, "
         f"intercept {s['intercept']:.6f}, r = {s['r']:.3f}. "
@@ -1876,8 +1876,8 @@ display(Markdown('Fitted calibration lines (seed ' + str(SEED) + '):\n\n'
 
 Fitted calibration lines (seed 42):
 
-- **LSTM**: slope 0.724, intercept 0.002624, r = 0.164. Forecasts are too dispersed relative to realised values.
-- **MLP**: slope 0.043, intercept 0.006145, r = 0.028. Forecasts are too dispersed relative to realised values.
+- **LSTM**: slope 1.258, intercept -0.000177, r = 0.257. Forecasts are too compressed relative to realised values.
+- **MLP**: slope -0.084, intercept 0.006372, r = -0.043. Forecasts are not positively related to realised values: higher forecasts did not go with larger realised moves.
 
 
 ### Regime-conditional performance
@@ -1958,30 +1958,30 @@ exactly.
       <td>Calm</td>
       <td>40</td>
       <td>0.003672</td>
-      <td>0.004596</td>
-      <td>0.003411</td>
-      <td>7.1%</td>
-      <td>-25.2%</td>
+      <td>0.004612</td>
+      <td>0.003043</td>
+      <td>17.1%</td>
+      <td>-25.6%</td>
     </tr>
     <tr>
       <th>1</th>
       <td>Normal</td>
       <td>205</td>
       <td>0.007900</td>
-      <td>0.007882</td>
-      <td>0.005590</td>
-      <td>29.2%</td>
-      <td>0.2%</td>
+      <td>0.007880</td>
+      <td>0.005482</td>
+      <td>30.6%</td>
+      <td>0.3%</td>
     </tr>
     <tr>
       <th>2</th>
       <td>Stress</td>
       <td>7</td>
       <td>0.012389</td>
-      <td>0.011533</td>
-      <td>0.007950</td>
-      <td>35.8%</td>
-      <td>6.9%</td>
+      <td>0.010873</td>
+      <td>0.007829</td>
+      <td>36.8%</td>
+      <td>12.2%</td>
     </tr>
   </tbody>
 </table>
@@ -2070,10 +2070,10 @@ address.
 | Date | 2026-06-05 |
 | Regime | Normal |
 | Actual \|return\| | 0.026801 |
-| LSTM forecast | 0.003985 |
-| MLP forecast | 0.000812 |
+| LSTM forecast | 0.006366 |
+| MLP forecast | 0.002116 |
 | Persistence forecast | 0.004047 |
-| LSTM error | +0.022817 |
+| LSTM error | +0.020435 |
 | Trailing 5-day mean | 0.003506 |
 | Ratio to trailing mean | 7.64x |
 
@@ -2081,7 +2081,7 @@ address.
 
 
 
-The worst miss was an **underforecast** of 0.022817 on
+The worst miss was an **underforecast** of 0.020435 on
 2026-06-05. The realised move was 7.6 times the trailing 5-day average. Every input the model had described the market as it was before the shock, not as it became. A shock arriving from outside the return series is not forecastable from the return series.
 
 Persistence forecast 0.004047 against a realised 0.026801, so
@@ -2144,6 +2144,10 @@ top_3 = list(imp_df.index[:3])
 top_outside = [f for f in top_3 if f in outside_garch]
 top_closes = [f for f in top_3 if f in from_closes]
 n_negative = int((imp_df['MSE increase'] < 0).sum())
+# Negative features whose mean change is smaller than its own standard
+# deviation across shuffle repeats: not distinguishable from shuffle noise.
+n_neg_within = int(((imp_df['MSE increase'] < 0)
+                    & (imp_df['Signal / noise'].abs() < 1)).sum())
 
 def join_names(names):
     return names[0] if len(names) == 1 else ', '.join(names[:-1]) + ' and ' + names[-1]
@@ -2166,20 +2170,32 @@ else:
     feat_interp = (
         f"The top three features are {join_names(top_3)}, all built from the "
         f"closing prices GARCH models, so on this seed the network re-expresses "
-        f"information GARCH already uses, at far higher computational cost."
+        f"information GARCH already uses."
     )
     importance_summary = (
         "ranks only inputs built from closing prices among the three the LSTM "
         "relies on most, so on this seed it appears to re-learn information "
         "GARCH already uses"
     )
+    
+if n_negative == 0:
+    neg_text = (
+        f" None of the {len(FEATURE_COLS)} features shows negative importance."
+    )
+else:
+    neg_text = (
+        f" {n_negative} of {len(FEATURE_COLS)} features "
+        f"{'shows' if n_negative == 1 else 'show'} negative mean importance: "
+        f"shuffling {'it' if n_negative == 1 else 'them'} lowered the error on "
+        f"average across {N_REPEATS} repeats. For {n_neg_within} of "
+        f"{'it' if n_negative == 1 else 'them'}, the mean change is smaller "
+        "than its standard deviation across repeats, so the effect is not "
+        "distinguishable from shuffle noise."
+    )
 
 display(Markdown(
-    feat_interp +
-    f" {n_negative} of {len(FEATURE_COLS)} features show negative importance, "
-    "meaning shuffling them improved the forecast. On a well-fitted model that "
-    "indicates noise features; on this one it is also consistent with the fit "
-    "instability measured in section 10, and the ranking should be treated as "
+    feat_interp + neg_text +
+    " The ranking comes from one trained network and should be read as "
     "specific to this seed rather than as a property of the architecture."
 ))
 ```
@@ -2210,64 +2226,64 @@ display(Markdown(
   </thead>
   <tbody>
     <tr>
+      <th>rsi_14</th>
+      <td>1.707597e-06</td>
+      <td>1.534014e-07</td>
+      <td>11.13</td>
+    </tr>
+    <tr>
       <th>log_returns</th>
-      <td>7.399577e-07</td>
-      <td>2.541274e-07</td>
-      <td>2.91</td>
-    </tr>
-    <tr>
-      <th>vol_roll_60</th>
-      <td>5.218517e-07</td>
-      <td>5.504214e-08</td>
-      <td>9.48</td>
-    </tr>
-    <tr>
-      <th>volume_rel_21</th>
-      <td>4.763732e-07</td>
-      <td>2.417227e-07</td>
-      <td>1.97</td>
-    </tr>
-    <tr>
-      <th>atr_pct_14</th>
-      <td>1.250137e-07</td>
-      <td>5.828038e-08</td>
-      <td>2.15</td>
-    </tr>
-    <tr>
-      <th>vol_roll_10</th>
-      <td>9.269774e-08</td>
-      <td>3.035954e-08</td>
-      <td>3.05</td>
+      <td>6.942945e-07</td>
+      <td>2.678648e-07</td>
+      <td>2.59</td>
     </tr>
     <tr>
       <th>vol_rank_30</th>
-      <td>7.202938e-08</td>
-      <td>6.486483e-08</td>
-      <td>1.11</td>
+      <td>3.542365e-07</td>
+      <td>1.074807e-07</td>
+      <td>3.30</td>
     </tr>
     <tr>
       <th>vol_roll_21</th>
-      <td>-5.897114e-08</td>
-      <td>2.781993e-08</td>
-      <td>-2.12</td>
-    </tr>
-    <tr>
-      <th>vol_ratio_10_60</th>
-      <td>-1.271412e-07</td>
-      <td>1.720177e-07</td>
-      <td>-0.74</td>
+      <td>2.258278e-07</td>
+      <td>4.170409e-08</td>
+      <td>5.42</td>
     </tr>
     <tr>
       <th>bb_width</th>
-      <td>-6.032977e-07</td>
-      <td>9.092311e-08</td>
-      <td>-6.64</td>
+      <td>8.870330e-08</td>
+      <td>9.762086e-08</td>
+      <td>0.91</td>
     </tr>
     <tr>
-      <th>rsi_14</th>
-      <td>-1.326490e-06</td>
-      <td>1.166854e-07</td>
-      <td>-11.37</td>
+      <th>atr_pct_14</th>
+      <td>5.775132e-08</td>
+      <td>7.803180e-08</td>
+      <td>0.74</td>
+    </tr>
+    <tr>
+      <th>vol_ratio_10_60</th>
+      <td>2.891923e-08</td>
+      <td>1.601052e-07</td>
+      <td>0.18</td>
+    </tr>
+    <tr>
+      <th>vol_roll_60</th>
+      <td>-4.007808e-08</td>
+      <td>6.818988e-08</td>
+      <td>-0.59</td>
+    </tr>
+    <tr>
+      <th>volume_rel_21</th>
+      <td>-1.889861e-07</td>
+      <td>8.727504e-08</td>
+      <td>-2.17</td>
+    </tr>
+    <tr>
+      <th>vol_roll_10</th>
+      <td>-2.212990e-07</td>
+      <td>3.890980e-08</td>
+      <td>-5.69</td>
     </tr>
   </tbody>
 </table>
@@ -2275,11 +2291,11 @@ display(Markdown(
 
 
     
-    Most important feature (seed 42): log_returns
+    Most important feature (seed 42): rsi_14
     
 
 
-Non-volatility features (log_returns, volume_rel_21) rank in the top three, so the network is keying on information GARCH has no access to. That did not translate into a win here. 4 of 10 features show negative importance, meaning shuffling them improved the forecast. On a well-fitted model that indicates noise features; on this one it is also consistent with the fit instability measured in section 10, and the ranking should be treated as specific to this seed rather than as a property of the architecture.
+The top three features are rsi_14, log_returns and vol_rank_30, all built from the closing prices GARCH models, so on this seed the network re-expresses information GARCH already uses. 3 of 10 features show negative mean importance: shuffling them lowered the error on average across 5 repeats. For 1 of them, the mean change is smaller than its standard deviation across repeats, so the effect is not distinguishable from shuffle noise. The ranking comes from one trained network and should be read as specific to this seed rather than as a property of the architecture.
 
 
 ### Complexity versus accuracy
@@ -2365,7 +2381,7 @@ more parameters.
 
 
 GJR-GARCH(1,1,1) — skewed Student's t achieves its accuracy with 6 parameters. The MLP
-uses 13,569 and the LSTM 5,537. Neither network improved on GARCH on this seed, so the additional complexity bought nothing.
+uses 13,569 and the LSTM 5,537. On this seed the LSTM matches GARCH at 923 times the parameter count.
 
 The vertical bar on the LSTM marker is its range across 3 seeds.
 GARCH has no such bar, because refitting it on the same data returns the same
@@ -2384,11 +2400,10 @@ more parameters.
 garch_dominates = GARCH_RMSE <= min(lstm_rmse, mlp_rmse)
 if garch_dominates:
     tradeoff_note = (
-        "The MLP is the more reproducible of the two networks, which alone "
-        "would count in its favour. It does not here: "
-        f"{GARCH_LABEL} is both more accurate than either network and exactly "
-        "reproducible, so it dominates on both axes and the trade-off between "
-        "them never has to be priced."
+        f"{GARCH_LABEL} has lower RMSE than either network on the primary "
+        "seed and is exactly reproducible, so it leads on both rows and the "
+        "trade-off between accuracy and reproducibility never has to be "
+        "priced."
     )
 else:
     tradeoff_note = (
@@ -2407,13 +2422,12 @@ display(Markdown(f"""
 | Inference ({TEST_SIZE} obs) | (see NB05) | {mlp_inference_ms:.0f} ms | {lstm_inference_ms:.0f} ms |
 | Interpretability | Each parameter maps to a financial mechanism | Black box | Black box |
 | Dependencies | `arch` (built on NumPy and SciPy) | TensorFlow | TensorFlow |
-| Reproducibility | Deterministic | {mlp_spread_pct:.0f}% RMSE spread across seeds | {lstm_spread_pct:.0f}% RMSE spread across seeds |
+| Reproducibility | Deterministic | {mlp_spread_pct:.1f}% RMSE spread across seeds | {lstm_spread_pct:.1f}% RMSE spread across seeds |
 
-The reproducibility row is the one that decides Version 1. A daily risk report
+ A daily risk report
 has to be defensible when someone asks why today's number differs from
 yesterday's, and a model whose output moves when nothing but the thread
-schedule changed cannot answer that question. Accuracy alone would not settle
-the choice between these models; auditability does.
+schedule changed cannot answer that question. {tradeoff_note}
 """))
 ```
 
@@ -2421,20 +2435,19 @@ the choice between these models; auditability does.
 
 | Criterion | GJR-GARCH(1,1,1) — skewed Student's t | MLP (64 hidden) | LSTM (32 units) |
 |---|---|---|---|
-| RMSE (primary seed) | 0.005236 | 0.007588 | 0.005387 |
-| RMSE range across seeds | not applicable | 0.007547 to 0.008223 | 0.005387 to 0.005473 |
+| RMSE (primary seed) | 0.005236 | 0.007561 | 0.005255 |
+| RMSE range across seeds | not applicable | 0.007373 to 0.007821 | 0.005255 to 0.005415 |
 | Trainable parameters | 6 | 13,569 | 5,537 |
-| Training time | (see NB05) | 237 s per seed | 684 s per seed |
-| Inference (252 obs) | (see NB05) | 93 ms | 157 ms |
+| Training time | (see NB05) | 257 s per seed | 660 s per seed |
+| Inference (252 obs) | (see NB05) | 83 ms | 130 ms |
 | Interpretability | Each parameter maps to a financial mechanism | Black box | Black box |
 | Dependencies | `arch` (built on NumPy and SciPy) | TensorFlow | TensorFlow |
-| Reproducibility | Deterministic | 9% RMSE spread across seeds | 2% RMSE spread across seeds |
+| Reproducibility | Deterministic | 6.1% RMSE spread across seeds | 3.0% RMSE spread across seeds |
 
-The reproducibility row is the one that decides Version 1. A daily risk report
+ A daily risk report
 has to be defensible when someone asks why today's number differs from
 yesterday's, and a model whose output moves when nothing but the thread
-schedule changed cannot answer that question. Accuracy alone would not settle
-the choice between these models; auditability does.
+schedule changed cannot answer that question. GJR-GARCH(1,1,1) — skewed Student's t has lower RMSE than either network on the primary seed and is exactly reproducible, so it leads on both rows and the trade-off between accuracy and reproducibility never has to be priced.
 
 
 
@@ -2442,30 +2455,24 @@ the choice between these models; auditability does.
 
 
 ```python
-if GARCH_PERSISTENCE is not None:
-    half_life = np.log(0.5) / np.log(GARCH_PERSISTENCE)
-    persistence_phrase = (
-        f'GARCH persistence of {GARCH_PERSISTENCE:.4f} in Notebook 05, '
-        f'implying a shock half-life of roughly {half_life:.0f} trading days'
-    )
-else:
-    persistence_phrase = (
-        'near-unit GARCH persistence in Notebook 05, implying shocks that '
-        'decay over months rather than days'
-    )
+half_life = np.log(0.5) / np.log(GARCH_PERSISTENCE)
+persistence_phrase = (
+    f'GARCH persistence of {GARCH_PERSISTENCE:.4f} in Notebook 05, '
+    f'implying a shock half-life of roughly {half_life:.0f} trading days'
+)
 
 # The LSTM-vs-MLP claim is only as strong as the test behind it.
 if p_lm < 0.05 and lstm_beats_mlp:
     seq_claim = (
         f'The LSTM beat the MLP by {lstm_mlp_rel:.1f}% and the difference is '
-        f'significant (DM = {dm_lm:.3f}, p = {p_lm:.4f}). Since both see '
+        f'significant (DM = {dm_lm:.3f}, {fmt_p(p_lm)}). Since both see '
         f'identical inputs, the gap is attributable to the sequential '
         f'structure the MLP discards.'
     )
 elif lstm_beats_mlp:
     seq_claim = (
         f'The LSTM scored {lstm_mlp_rel:.1f}% below the MLP on RMSE, but the '
-        f'difference is not significant (DM = {dm_lm:.3f}, p = {p_lm:.4f}), '
+        f'difference is not significant (DM = {dm_lm:.3f}, {fmt_p(p_lm)}), '
         f'and the bootstrap intervals '
         f'{"overlap" if ci_overlap_lstm_mlp else "do not overlap"}. On this '
         f'evidence the second sub-hypothesis is unresolved: temporal '
@@ -2475,12 +2482,33 @@ elif lstm_beats_mlp:
 else:
     seq_claim = (
         f'The MLP matched or beat the LSTM (DM = {dm_lm:.3f}, '
-        f'p = {p_lm:.4f}), suggesting the feature set carries whatever signal '
+        f'{fmt_p(p_lm)}), suggesting the feature set carries whatever signal '
         f'exists and sequential modelling adds nothing.'
     )
 
-display(Markdown(f"""
-The result is not a failure of deep learning in general. It is a predictable
+spread_material = lstm_spread_pct > RMSE_MATERIAL * 100
+spread_verdict = 'above' if spread_material else 'within'
+variance_text = (
+    f"Section 10 found LSTM RMSE varying {lstm_spread_pct:.1f}% across "
+    f"{len(SEED_LIST)} runs that differ only in seed, {spread_verdict} the "
+    f"{RMSE_MATERIAL:.0%} materiality threshold."
+)
+decay_clause = (
+    f"and section 10 shows the seed alone moves the LSTM's RMSE by "
+    f"{lstm_spread_pct:.1f}%, {spread_verdict} the materiality threshold"
+)
+
+if lstm_garch_tie or not garch_wins:
+    outcome = ('an LSTM-GARCH tie within the materiality threshold'
+            if lstm_garch_tie else
+               'a network with RMSE at or below GARCH\'s')
+    display(Markdown(
+        f"**Interpretation not rendered.** This run produced {outcome}. "
+        "The explanation in this section was written for a GARCH win and "
+        "must be rewritten before it is cited."
+    ))
+else:
+    display(Markdown(f"""The result is not a failure of deep learning in general. It is a predictable
 outcome of applying flexible models to a problem where the structure is
 already known and the data is thin.
 
@@ -2493,14 +2521,9 @@ variance low. The networks have far greater representational capacity and
 therefore lower approximation bias, but they need many more observations to
 estimate their parameters reliably.
 
-The variance term is not a theoretical concern here. It is measured. Section 10
-found LSTM RMSE varying {lstm_spread_pct:.1f}% across {len(SEED_LIST)} runs
-that differ only in seed. The networks trained on roughly {test_start:,}
-sequences against {lstm_params:,} parameters (LSTM) and {mlp_params:,} (MLP),
+{variance_text} About {test_start:,} sequences precede the test window, against
+{lstm_params:,} trainable parameters in the LSTM and {mlp_params:,} in the MLP,
 ratios of ~{test_start / lstm_params:.1f}:1 and ~{test_start / mlp_params:.1f}:1.
-Deep learning generally wants 100:1 or better. At these ratios the optimiser
-has many near-equivalent solutions to choose between, and which one it lands on
-depends on numerical accidents.
 
 The target works against flexible models too. Absolute daily log returns are
 dominated by idiosyncratic shocks, and the forecastable component, the
@@ -2511,13 +2534,11 @@ which takes more data than is available.
 Volatility's high autocorrelation ({persistence_phrase}) makes the persistence
 benchmark hard to beat and limits the room for any model to improve. GARCH's
 edge comes from modelling mean reversion after shocks explicitly; the networks
-must learn that decay from examples, and section 10 shows how unstably they
-learn it.
+must learn that decay from examples, {decay_clause}.
 
 {seq_claim}
 
-Permutation importance suggests the LSTM keys on {top_feature} rather than on
-the rolling volatility features, so it is not simply rediscovering GARCH.
+On the seed-{SEED} network, permutation importance {importance_summary}.
 Multi-asset inputs (cross-sectional volatility, sector correlations, VIX term
 structure) could give deep learning a genuine information advantage in a future
 version. On a single return series the structural model has fewer unknowns and
@@ -2526,108 +2547,83 @@ more constraints, and that is what decided this comparison.
 ```
 
 
-
-The result is not a failure of deep learning in general. It is a predictable
-outcome of applying flexible models to a problem where the structure is
-already known and the data is thin.
-
-The comparison illustrates the bias-variance trade-off. GARCH restricts the
-hypothesis space using financial assumptions: variance is persistent, shocks
-decay geometrically, negative returns raise variance more than positive ones.
-Those restrictions introduce bias if the assumptions are wrong, but they
-collapse the estimation problem to 6 parameters and keep
-variance low. The networks have far greater representational capacity and
-therefore lower approximation bias, but they need many more observations to
-estimate their parameters reliably.
-
-The variance term is not a theoretical concern here. It is measured. Section 10
-found LSTM RMSE varying 1.6% across 3 runs
-that differ only in seed. The networks trained on roughly 6,168
-sequences against 5,537 parameters (LSTM) and 13,569 (MLP),
-ratios of ~1.1:1 and ~0.5:1.
-Deep learning generally wants 100:1 or better. At these ratios the optimiser
-has many near-equivalent solutions to choose between, and which one it lands on
-depends on numerical accidents.
-
-The target works against flexible models too. Absolute daily log returns are
-dominated by idiosyncratic shocks, and the forecastable component, the
-conditional variance, is a slow-moving signal embedded in fast noise. GARCH is
-built to extract exactly that. A network has to learn to ignore the noise,
-which takes more data than is available.
-
-Volatility's high autocorrelation (GARCH persistence of 0.9789 in Notebook 05, implying a shock half-life of roughly 33 trading days) makes the persistence
-benchmark hard to beat and limits the room for any model to improve. GARCH's
-edge comes from modelling mean reversion after shocks explicitly; the networks
-must learn that decay from examples, and section 10 shows how unstably they
-learn it.
-
-The LSTM beat the MLP by 29.0% and the difference is significant (DM = 8.339, p = 0.0000). Since both see identical inputs, the gap is attributable to the sequential structure the MLP discards.
-
-Permutation importance suggests the LSTM keys on log_returns rather than on
-the rolling volatility features, so it is not simply rediscovering GARCH.
-Multi-asset inputs (cross-sectional volatility, sector correlations, VIX term
-structure) could give deep learning a genuine information advantage in a future
-version. On a single return series the structural model has fewer unknowns and
-more constraints, and that is what decided this comparison.
-
+**Interpretation not rendered.** This run produced an LSTM-GARCH tie within the materiality threshold. The explanation in this section was written for a GARCH win and must be rewritten before it is cited.
 
 
 ## 16. Conclusion
 
 
 ```python
-if seeds_beating_garch == 0:
-    headline = (
-        f"Across {len(SEED_LIST)} seeds, no LSTM run improved on "
-        f"{GARCH_LABEL}'s out-of-sample volatility forecasts, and the MLP "
-        f"did not either."
-    )
-elif seeds_beating_garch == len(SEED_LIST):
-    headline = (
-        f"Across {len(SEED_LIST)} seeds, every LSTM run improved on "
-        f"{GARCH_LABEL} on RMSE, though the margin varied by "
-        f"{lstm_spread_pct:.1f}% between runs."
-    )
-else:
-    headline = (
-        f"Across {len(SEED_LIST)} seeds, {seeds_beating_garch} LSTM runs "
-        f"improved on {GARCH_LABEL} and "
-        f"{len(SEED_LIST) - seeds_beating_garch} did not. The comparison does "
-        f"not have a stable answer at this sample size."
-    )
+mlp_seeds_beating_garch = int(
+    ((mlp_rmses - GARCH_RMSE) / GARCH_RMSE <= -RMSE_MATERIAL).sum())
+seed_answer_stable = max(seeds_beating_garch, seeds_tied_garch,
+                         seeds_losing_garch) == len(SEED_LIST)
+headline = (
+    f"Of {len(SEED_LIST)} LSTM runs differing only in seed, {outcome_counts}. "
+    f"The MLP beat {GARCH_LABEL} beyond the threshold on "
+    f"{mlp_seeds_beating_garch} of {len(SEED_LIST)} seeds."
+    + ("" if seed_answer_stable else
+       " The comparison does not have a stable answer at this sample size.")
+)
 
-p_lm_str = '< 0.001' if p_lm < 0.001 else f'= {p_lm:.4f}'
 if not lstm_beats_mlp:
-    mlp_control = f'matched or beat the LSTM (p {p_lm_str})'
+    mlp_control = f'matched or beat the LSTM ({fmt_p(p_lm)})'
+    mlp_conclusion = ('so the features carry whatever signal the networks '
+                      'find, and sequential modelling adds nothing on this run')
 elif p_lm < 0.05:
     mlp_control = (f'trailed the LSTM significantly '
-                   f'(DM = {dm_lm:.3f}, p {p_lm_str})')
+                   f'(DM = {dm_lm:.3f}, {fmt_p(p_lm)})')
+    mlp_conclusion = ('so the sequential structure adds information the '
+                      'features alone do not carry')
 else:
-    mlp_control = f'trailed the LSTM, though not significantly (p {p_lm_str})'
+    mlp_control = f'trailed the LSTM, though not significantly ({fmt_p(p_lm)})'
+    mlp_conclusion = ('so this run cannot separate what the sequential '
+                      'structure adds from what the features carry')
+
+
+if lstm_garch_tie or not garch_wins:
+    outcome = ('an LSTM-GARCH tie within the materiality threshold'
+            if lstm_garch_tie else
+               'a network with RMSE at or below GARCH\'s')
+    choice_text = (
+        f"**Production rationale not rendered.** This run produced {outcome}. "
+        "The rationale was written for a GARCH win and must be rewritten "
+        "before it is cited."
+    )
+else:
+    choice_text = f"""For this application, single-asset daily volatility on roughly {len(df):,}
+observations, {GARCH_LABEL} had lower RMSE than either network on the
+primary seed with {garch_n_params} parameters, against {lstm_params:,} in
+the LSTM and {mlp_params:,} in the MLP. Version 1 retains {GARCH_LABEL} as
+the production forecasting model.
+
+The choice rests on accuracy and on auditability. On accuracy, 
+the primary-seed LSTM's RMSE was {abs(lstm_vs_garch_rmse):.1f}% above
+{GARCH_LABEL}'s, beyond the {RMSE_MATERIAL:.0%} materiality threshold. That
+gap has not been tested for significance, because Notebook 05 does not export
+the GARCH forecast series a Diebold-Mariano test needs, and the GARCH RMSE
+{'falls inside' if garch_in_lstm_ci else 'falls outside'} the LSTM's 95%
+block-bootstrap interval. On
+auditability, GARCH returns the same coefficients every time it is fitted,
+while the LSTM's walk-forward RMSE moved {lstm_spread_pct:.1f}% across runs
+differing only in random seed, {spread_verdict} the materiality threshold. A
+daily risk report that changes when the pipeline is re-run on unchanged data
+is not auditable, and auditability is a requirement rather than a preference."""
+
+    
 
 display(Markdown(f"""
 {headline}
 
-For this application, single-asset daily volatility on roughly {len(df):,}
-observations, encoding financial structure proved more valuable than
-increasing model capacity or enriching the feature set. Version 1 retains
-{GARCH_LABEL} as the production forecasting model.
+{choice_text}
 
-The strongest argument for that choice turned out not to be accuracy. It is
-that GARCH returns the same coefficients every time it is fitted, while the
-LSTM's walk-forward RMSE moved {lstm_spread_pct:.1f}% across runs differing
-only in random seed. A daily risk report that changes when the pipeline is
-re-run on unchanged data is not auditable, and auditability is a requirement
-rather than a preference.
-
-The MLP control answered its own question. On identical inputs it
-{mlp_control}, so the feature set alone does not carry whatever signal exists.
+The MLP control tests whether the features alone carry the signal. On
+identical inputs it {mlp_control}, {mlp_conclusion}.
 
 Extensions for Version 2, out of current scope: multi-asset inputs;
 Transformer or temporal convolutional architectures; GARCH-X with exogenous
 features, to test whether GARCH also benefits from the Notebook 03 feature
-set; and ensembling across seeds, which would trade compute for the stability
-the single network lacks.
+set; and ensembling across seeds, which would trade compute for lower seed variance.
 
 ### Takeaway
 
@@ -2636,39 +2632,27 @@ underlying mechanism is well understood and the data is limited, explicitly
 modelling that structure can match or beat far larger networks trained on
 richer feature sets.
 
-The less expected lesson is methodological. A single neural network run on
-this data is not a measurement, it is a sample. Reporting one run as though it
-were the model's performance would have produced a defensible-looking number
-and a conclusion that flips depending on which execution gets written down.
-The instability was only visible because the notebook was run twice, and it is
-reported here because it is a finding rather than an inconvenience.
+The methodological lesson is that a single neural network run on this data
+is a sample rather than a measurement. This notebook therefore repeats the
+walk-forward across {len(SEED_LIST)} seeds and reports the spread,
+{lstm_spread_pct:.1f}% in LSTM RMSE on this run, alongside every
+primary-seed figure.
 """))
 ```
 
 
 
-Across 3 seeds, no LSTM run improved on GJR-GARCH(1,1,1) — skewed Student's t's out-of-sample volatility forecasts, and the MLP did not either.
+Of 3 LSTM runs differing only in seed, 0 beat GJR-GARCH(1,1,1) — skewed Student's t beyond the 1% materiality threshold, 1 tied within it and 2 fell short beyond it. The MLP beat GJR-GARCH(1,1,1) — skewed Student's t beyond the threshold on 0 of 3 seeds. The comparison does not have a stable answer at this sample size.
 
-For this application, single-asset daily volatility on roughly 6,441
-observations, encoding financial structure proved more valuable than
-increasing model capacity or enriching the feature set. Version 1 retains
-GJR-GARCH(1,1,1) — skewed Student's t as the production forecasting model.
+**Production rationale not rendered.** This run produced an LSTM-GARCH tie within the materiality threshold. The rationale was written for a GARCH win and must be rewritten before it is cited.
 
-The strongest argument for that choice turned out not to be accuracy. It is
-that GARCH returns the same coefficients every time it is fitted, while the
-LSTM's walk-forward RMSE moved 1.6% across runs differing
-only in random seed. A daily risk report that changes when the pipeline is
-re-run on unchanged data is not auditable, and auditability is a requirement
-rather than a preference.
-
-The MLP control answered its own question. On identical inputs it
-trailed the LSTM significantly (DM = 8.339, p < 0.001), so the feature set alone does not carry whatever signal exists.
+The MLP control tests whether the features alone carry the signal. On
+identical inputs it trailed the LSTM significantly (DM = 8.954, p < 0.0001), so the sequential structure adds information the features alone do not carry.
 
 Extensions for Version 2, out of current scope: multi-asset inputs;
 Transformer or temporal convolutional architectures; GARCH-X with exogenous
 features, to test whether GARCH also benefits from the Notebook 03 feature
-set; and ensembling across seeds, which would trade compute for the stability
-the single network lacks.
+set; and ensembling across seeds, which would trade compute for lower seed variance.
 
 ### Takeaway
 
@@ -2677,12 +2661,11 @@ underlying mechanism is well understood and the data is limited, explicitly
 modelling that structure can match or beat far larger networks trained on
 richer feature sets.
 
-The less expected lesson is methodological. A single neural network run on
-this data is not a measurement, it is a sample. Reporting one run as though it
-were the model's performance would have produced a defensible-looking number
-and a conclusion that flips depending on which execution gets written down.
-The instability was only visible because the notebook was run twice, and it is
-reported here because it is a finding rather than an inconvenience.
+The methodological lesson is that a single neural network run on this data
+is a sample rather than a measurement. This notebook therefore repeats the
+walk-forward across 3 seeds and reports the spread,
+3.0% in LSTM RMSE on this run, alongside every
+primary-seed figure.
 
 
 
@@ -2736,7 +2719,12 @@ metrics['notebook_06'] = {
     'lstm_rmse_max':          float(lstm_rmse_max),
     'lstm_spread_pct':        float(lstm_spread_pct),
     'mlp_spread_pct':         float(mlp_spread_pct),
+    # Counted with RMSE_MATERIAL: beating means lower by at least the
+    # threshold, tied means within it (changed 2026-10-20; strict before).
     'seeds_beating_garch':    seeds_beating_garch,
+    'seeds_tied_garch':       seeds_tied_garch,
+    'seeds_losing_garch':     seeds_losing_garch,
+    'mlp_seeds_beating_garch': mlp_seeds_beating_garch,
     'seeds_beating_persistence': seeds_beating_pers,
 
     # Comparisons on the primary seed
@@ -2793,8 +2781,6 @@ for k, v in metrics['notebook_06'].items():
 
     Predictions saved to C:\Users\Mena\Documents\Python\sp500-market-intelligence\data\nb06_predictions.parquet
     
-
-    
     Exported notebook_06 metrics to C:\Users\Mena\Documents\Python\sp500-market-intelligence\data\locked_metrics.json
       primary_seed: 42
       seed_list: [42, 43, 44]
@@ -2805,56 +2791,59 @@ for k, v in metrics['notebook_06'].items():
       garch_n_params: 6
       n_features: 10
       lookback: 21
-      wf_rmse_lstm: 0.005387486802263018
-      wf_mae_lstm: 0.003935097751656807
-      wf_rmse_mlp: 0.007588285205721072
-      wf_mae_mlp: 0.005570047888646924
+      wf_rmse_lstm: 0.005255391612107522
+      wf_mae_lstm: 0.0038748273493675453
+      wf_rmse_mlp: 0.007560995856635621
+      wf_mae_mlp: 0.005708764072674256
       wf_rmse_persistence: 0.0075617841947451326
       wf_mae_persistence: 0.005685889011073224
-      lstm_rmse_by_seed: {'42': 0.005387486802263018, '43': 0.005473010436254052, '44': 0.005416717460760347}
-      mlp_rmse_by_seed: {'42': 0.007588285205721072, '43': 0.008222599136181208, '44': 0.007546988889905834}
-      lstm_rmse_mean: 0.005425738233092473
-      lstm_rmse_sd: 4.3469572609575356e-05
-      lstm_rmse_min: 0.005387486802263018
-      lstm_rmse_max: 0.005473010436254052
-      lstm_spread_pct: 1.587449531293709
-      mlp_spread_pct: 8.952050362483085
+      lstm_rmse_by_seed: {'42': 0.005255391612107522, '43': 0.005414568829907929, '44': 0.0053280991986805575}
+      mlp_rmse_by_seed: {'42': 0.007560995856635621, '43': 0.007820531935129875, '44': 0.007372536498731866}
+      lstm_rmse_mean: 0.005332686546898669
+      lstm_rmse_sd: 7.968769973731963e-05
+      lstm_rmse_min: 0.005255391612107522
+      lstm_rmse_max: 0.005414568829907929
+      lstm_spread_pct: 3.02883647022022
+      mlp_spread_pct: 6.076544164617798
       seeds_beating_garch: 0
+      seeds_tied_garch: 1
+      seeds_losing_garch: 2
+      mlp_seeds_beating_garch: 0
       seeds_beating_persistence: 3
-      lstm_vs_pers_rmse_pct: 28.753761499740854
-      lstm_vs_garch_rmse_pct: -2.884308557530657
-      mlp_vs_pers_rmse_pct: -0.3504597631119376
-      mlp_vs_garch_rmse_pct: -44.91274042657732
+      lstm_vs_pers_rmse_pct: 30.500640103434574
+      lstm_vs_garch_rmse_pct: -0.3616996302633035
+      mlp_vs_pers_rmse_pct: 0.010425292354407685
+      mlp_vs_garch_rmse_pct: -44.39159839603678
       rmse_material_threshold: 0.01
-      lstm_garch_tie: False
+      lstm_garch_tie: True
       garch_wins: True
       lstm_beats_mlp: True
-      dm_stat_lstm_pers: 5.735880153460949
-      dm_pval_lstm_pers: 9.70072416991442e-09
-      dm_stat_mlp_pers: -0.08011661131088324
-      dm_pval_mlp_pers: 0.9361445112999679
-      dm_stat_lstm_mlp: 8.33857916870465
-      dm_pval_lstm_mlp: 7.518848312675615e-17
-      rmse_ci_lstm: [0.004577207165545294, 0.006205798831317348]
-      rmse_ci_mlp: [0.006613106877508571, 0.008673246156082576]
+      dm_stat_lstm_pers: 5.986777922038835
+      dm_pval_lstm_pers: 2.140387082737052e-09
+      dm_stat_mlp_pers: 0.0023878298400206335
+      dm_pval_mlp_pers: 0.9980947892473233
+      dm_stat_lstm_mlp: 8.95383591332554
+      dm_pval_lstm_mlp: 3.4333904138324877e-19
+      rmse_ci_lstm: [0.004453727950403452, 0.0061030790202412245]
+      rmse_ci_mlp: [0.006716347766569203, 0.00849540954274147]
       rmse_ci_persistence: [0.006327485030820103, 0.00886358272659801]
       n_bootstrap: 2000
       bootstrap_block: 21
-      lb_pval_lstm: 0.977969624348594
-      lb_pval_mlp: 1.2721142885968586e-13
-      calib_slope_lstm: 0.7239827088552796
-      calib_slope_mlp: 0.042889619857762934
+      lb_pval_lstm: 0.9446027570866832
+      lb_pval_mlp: 3.2488629833976875e-05
+      calib_slope_lstm: 1.2579252460084547
+      calib_slope_mlp: -0.0844812409847584
       worst_miss_date: 2026-06-05
-      worst_miss_error: 0.02281653676036941
+      worst_miss_error: 0.02043534284312474
       worst_miss_regime: Normal
-      top_feature: log_returns
-      wf_total_time_s: 2574.9
-      wf_lstm_time_s: 684.0
-      wf_mlp_time_s: 236.5
-      avg_epochs_lstm: 42.2
-      avg_epochs_mlp: 36.8
-      lstm_inference_ms: 156.83
-      mlp_inference_ms: 93.23
+      top_feature: rsi_14
+      wf_total_time_s: 2696.4
+      wf_lstm_time_s: 660.4
+      wf_mlp_time_s: 256.9
+      avg_epochs_lstm: 41.4
+      avg_epochs_mlp: 42.5
+      lstm_inference_ms: 130.44
+      mlp_inference_ms: 82.78
       tf_version: 2.21.0
       garch_persistence_used: 0.978945261996311
     
