@@ -175,20 +175,39 @@
     "garch_persistence_used": 0.978945261996311
   },
   "notebook_07": {
-    "nu_used_for_threshold": 6.760109587620447,
-    "nu_source": "notebook_05.garch_nu",
-    "nu_refit_local": 6.94,
-    "nu_refit_local_nobs": 6721,
-    "threshold_99": 2.972,
-    "threshold_95": 1.999,
-    "n_anomalies_1pct": 56,
-    "n_anomalies_5pct": 327,
+    "dist_used_for_cutoffs": "skewt",
+    "shape_used_for_cutoffs": {
+      "eta": 7.4860859169257195,
+      "lambda": -0.14955043971231133
+    },
+    "shape_source": "notebook_05.garch_shape",
+    "shape_refit_local": {
+      "eta": 7.6693,
+      "lambda": -0.1487
+    },
+    "refit_local_nobs": 6721,
+    "cutoff_99_lower": -3.214,
+    "cutoff_99_upper": 2.618,
+    "cutoff_95_lower": -2.143,
+    "cutoff_95_upper": 1.836,
+    "n_anomalies_1pct": 67,
+    "n_anomalies_5pct": 326,
+    "n_lower_1pct": 43,
+    "n_upper_1pct": 24,
+    "n_lower_5pct": 170,
+    "n_upper_5pct": 156,
     "n_total_days": 6721,
-    "coverage_p_1pct": 0.17756784429545253,
-    "coverage_p_5pct": 0.6342710221416591,
-    "pct_in_known_events": 5.4,
-    "quiet_period_anomalies": 49,
-    "neg_anomaly_share": 87.5
+    "coverage_p_1pct": 1.0,
+    "coverage_p_5pct": 0.5949351391695523,
+    "coverage_p_1pct_lower": 0.11831878867776251,
+    "coverage_p_1pct_upper": 0.1001936549763022,
+    "coverage_p_5pct_lower": 0.8757758666094415,
+    "coverage_p_5pct_upper": 0.36883319105816115,
+    "split_p_1pct": 0.027119992403126333,
+    "split_p_5pct": 0.47157797712896615,
+    "pct_in_known_events": 4.5,
+    "quiet_period_anomalies": 58,
+    "neg_anomaly_share": 64.2
   },
   "notebook_08": {
     "as_of": "2026-09-25",
