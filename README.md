@@ -19,17 +19,15 @@ The work runs across eight sequential Jupyter notebooks, NB01 to NB08, with walk
 | Forecast target | Next-day volatility, scored against the absolute daily log return |
 | Production model | GJR-GARCH(1,1,1) with skewed Student's t innovations, selected by AIC |
 | Evaluation | Walk-forward over the final 252 trading days, refit every 21 days on an expanding window |
-| Status | NB05 and NB06 run on the skewed model. NB07 and NB08 still use the symmetric Student's t and are being updated |
+| Status | NB05, NB06 and NB07 run on the skewed model. NB08 still uses the symmetric Student's t and is being updated |
 
 ## Current status
 
-The project is partway through a change of production model. NB08's VaR backtest rejected the symmetric Student's t model at both the 95% and 99% levels, so the system's own monitoring set its status to BREACH. The evidence pointed to the left tail: in NB05's symmetric fit, **49** standardised residuals fell below the lower 0.5% cut-off against **6** above the upper one (binomial p < **0.0001**). I added GJR-GARCH(1,1,1) with skewed Student's t innovations as a fifth candidate in NB05, and the project's existing AIC rule selected it.
-
-NB05 and NB06 now run on the skewed model. NB07 and NB08 still carry the symmetric model's results, because each needs a code change before its rerun: NB07's anomaly cut-offs become asymmetric, one for each tail, and NB08 must compute VaR from the skewed quantiles. Their sections below are labelled as symmetric-model results, and the BREACH status stands until NB08 runs on the skewed model. NB06 has been rerun with every network refit fully seeded, so a rerun now reproduces its results, and no network beats GARCH on any of its three seeds.
+The project is closing a change of production model. NB08's VaR backtest rejected the symmetric Student's t model at both the 95% and 99% levels, and in NB05's symmetric fit **49** standardised residuals fell below the lower 0.5% cut-off against **6** above the upper one (binomial p < **0.0001**), so I added a skewed Student's t as a fifth candidate in NB05 and the project's AIC rule selected it. NB05, NB06 and NB07 now run on the skewed model. NB08 does not yet, so its section and the report excerpt below show symmetric-model results, and the BREACH status stands until NB08 computes VaR from the skewed quantiles.
 
 ## What the system produces
 
-NB08 refits the production model on the full sample, classifies the regime, adds the anomaly flag from NB07 and assembles the Daily Market Risk Report, which it exports to [`reports/risk_report.json`](reports/risk_report.json). This excerpt is the last NB08 run, as of 2026-09-25, which still used the symmetric Student's t model:
+NB08 refits the production model on the full sample, classifies the regime and assembles the Daily Market Risk Report, which it exports to [`reports/risk_report.json`](reports/risk_report.json). This excerpt is the last NB08 run, as of 2026-09-25, which still used the symmetric Student's t model:
 
 ```text
 Daily Market Risk Report, as of 2026-09-25 (excerpt)
@@ -40,13 +38,13 @@ Historical percentile   25th
 Regime                  Calm, less than 0.01 percentage points below the Normal threshold
 Trend                   falling against 1 week ago and 1 month ago
 Daily VaR               0.9772% at 95%, 1.5847% at 99%
-Anomaly detected        No
+Anomaly check           not run in this execution
 VaR backtest            rejected at 95% and at 99%
 Monitoring status       BREACH
 Allocation multiplier   1.0x (Calm)
 ```
 
-The full report also splits the forecast into its GARCH terms and carries the calibration and monitoring checks. The weekly contribution is sized by the regime observed on the previous Friday, so the signal never uses the week it sizes. The investor also records the intended contribution in a decision log before opening the report, which makes the gap between intention and action measurable.
+The full report also splits the forecast into its GARCH terms and carries the calibration and monitoring checks. The anomaly flag from NB07 is designed to join it, but that run looked for column names NB07 does not write, so the flag was never read; the fix is part of the NB08 update. The weekly contribution is sized by the regime observed on the previous Friday, so the signal never uses the week it sizes. The investor also records the intended contribution in a decision log before opening the report, which makes the gap between intention and action measurable.
 
 ## How the pipeline fits together
 
@@ -108,11 +106,13 @@ Earlier runs seeded NumPy and TensorFlow but not Python's random module, which K
 
 ### Anomaly flags measure model surprise
 
-NB07 has not yet been rerun on the skewed model, so these figures come from the symmetric fit. It flags days whose standardised residual falls beyond a standardised Student's t cut-off, with ν = **6.76** from the symmetric NB05 fit and the quantile scaled by `sqrt((nu - 2) / nu)`: **2.972** at 1% and **1.999** at 5%. At 1%, **56** of **6,721** days are flagged against **67** expected, and an exact binomial test does not reject the nominal rate (p = **0.1776**). At 5%, the count is **327** against **336** (p = **0.6343**). Only **3** of the 56 flags fall inside the three stress windows (the 2008 financial crisis, the COVID crash and the 2022 rate-hike onset), in line with the **4.8%** of trading days those windows cover (p = **0.7505**). The flag therefore measures model surprise, and crisis identification stays with the regime classifier. Of the 56 flags, **87.5%** are falls, which is where the evidence against the symmetric Student's t first appeared.
+NB07 now runs on the skewed model. It flags days whose standardised residual falls beyond a cut-off in either tail of the skewed Student's t, with the shape taken from NB05's production fit: **-3.214** and **+2.618** at 1%, **-2.143** and **+1.836** at 5%. At 1%, **67** of **6,721** days are flagged against **67.2** expected, and exact binomial tests reject neither the pooled rate (p = **1.0000**) nor either tail: **43** falls against **33.6** expected (p = **0.1183**) and **24** rises (p = **0.1002**). At 5%, the count is **326** against **336.1** (p = **0.5949**). The 1% flags still lean to falls: **64.2%** sit below the lower cut-off, and a test of an even split rejects (p = **0.0271**), so the fitted skew does not fully account for the imbalance between falls and rises.
+
+Only **3** of the 67 flags fall inside the three stress windows (the 2008 financial crisis, the COVID crash and the 2022 rate-hike onset), in line with the **4.8%** of trading days those windows cover (p = **1.0000**). The flag therefore measures model surprise, and crisis identification stays with the regime classifier. Two further checks qualify it. The flag rate differs across volatility regimes (chi-square = **15.14**, 3 degrees of freedom, p = **0.0017**): Calm days are flagged **30** times against **16.8** expected (p = **0.0029**), so the nominal 1% rate is approximate. The flags do not cluster in time (Ljung-Box at 21 lags, Q = **14.81**, p = **0.8322**).
 
 ### The risk report audits itself, and the VaR fails
 
-NB08 has not been rerun on the skewed model either. On the symmetric model, it refits on the full sample, classifies the regime, computes parametric VaR and backtests it over **6,441** days. The 95% VaR was breached on **407** days against **322.1** expected, a rate of **6.32%** (Kupiec LR = **21.85**, p < **0.0001**). The 99% VaR was breached on **93** days against **64.4**, a rate of **1.44%** (LR = **11.27**, p = **0.0008**). Both levels reject, and the breaches run above the nominal rate, so the symmetric model understates downside risk. The monitoring section turns each validation metric into a stay-in-service band, and the result is the BREACH status described under [Current status](#current-status).
+NB08 has not yet been rerun on the skewed model. On the symmetric model, it refits on the full sample, classifies the regime, computes parametric VaR and backtests it over **6,441** days. The 95% VaR was breached on **407** days against **322.1** expected, a rate of **6.32%** (Kupiec LR = **21.85**, p < **0.0001**). The 99% VaR was breached on **93** days against **64.4**, a rate of **1.44%** (LR = **11.27**, p = **0.0008**). Both levels reject, and the breaches run above the nominal rate, so the symmetric model understates downside risk. The monitoring section turns each validation metric into a stay-in-service band, and the result is the BREACH status described under [Current status](#current-status).
 
 ## Allocation design
 
@@ -164,7 +164,7 @@ conda env create -f environment.yml
 conda activate sp500-intel
 ```
 
-Run the notebooks in order from 01 to 08, restarting the kernel before each. Only NB01 downloads data, and it fixes the as-of date at the last complete NYSE session, so a fresh run uses newer data and every figure in `data/locked_metrics.json` will move. This README reports runs on data as of 2026-09-25. NB06 is the slow step: its three-seed walk-forward took **2,358** seconds on CPU in the run reported here. Its results reproduce exactly when it is rerun on the same machine and library versions, and can differ on other hardware or versions. NB06, NB07 and NB08 read parameters that NB05 exports, so rerun every notebook after the one you change. Until its update lands, NB07 stops with an error at the step that reads ν, because NB05 no longer exports it. To execute a notebook without opening it:
+Run the notebooks in order from 01 to 08, restarting the kernel before each. Only NB01 downloads data, and it fixes the as-of date at the last complete NYSE session, so a fresh run uses newer data and every figure in `data/locked_metrics.json` will move. This README reports runs on data as of 2026-09-25. NB06 is the slow step: its three-seed walk-forward took **2,358** seconds on CPU in the run reported here. Its results reproduce exactly when it is rerun on the same machine and library versions, and can differ on other hardware or versions. NB06, NB07 and NB08 read parameters that NB05 exports, so rerun every notebook after the one you change. To execute a notebook without opening it:
 
 ```bash
 jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=-1 notebooks/06_deep_learning_comparison.ipynb
@@ -190,7 +190,7 @@ jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeou
 
 ## Roadmap
 
-- Finish the skewed Student's t release: asymmetric anomaly cut-offs in NB07 and VaR from the skewed quantiles in NB08, then rerun both and refresh the report.
+- Finish the skewed Student's t release in NB08: fit the specification NB05 selected, compute VaR from the skewed quantiles, read the anomaly flag NB07 writes, then rerun and refresh the report.
 - Present the allocation multipliers in NB08 as a fixed policy choice, and relabel or remove the in-sample comparison in section 13.
 - Move reusable logic into a `src/` package (data ingestion and validation, feature engineering, GARCH fitting, regime classification and signal generation) with unit tests in `tests/`.
 - After the core project: the multiplier-schedule backtest in its own notebook, outside the 01 to 08 pipeline, with GARCH parameters and regime cut-offs estimated only from data available at each date.
