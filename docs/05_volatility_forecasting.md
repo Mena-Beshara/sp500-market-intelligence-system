@@ -793,8 +793,8 @@ print(res_arch1.summary())
     Distribution:                  Normal   AIC:                           19630.3
     Method:            Maximum Likelihood   BIC:                           19650.6
                                             No. Observations:                 6441
-    Date:                Wed, Oct 07 2026   Df Residuals:                     6440
-    Time:                        10:45:06   Df Model:                            1
+    Date:                Mon, Nov 16 2026   Df Residuals:                     6440
+    Time:                        12:23:49   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
@@ -1011,8 +1011,8 @@ print(res_garch11.summary())
     Distribution:                  Normal   AIC:                           17487.0
     Method:            Maximum Likelihood   BIC:                           17514.1
                                             No. Observations:                 6441
-    Date:                Wed, Oct 07 2026   Df Residuals:                     6440
-    Time:                        10:45:06   Df Model:                            1
+    Date:                Mon, Nov 16 2026   Df Residuals:                     6440
+    Time:                        12:23:50   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
@@ -1275,8 +1275,8 @@ print(res_garch11_t.summary())
     Distribution:      Standardized Student's t   AIC:                           17180.7
     Method:                  Maximum Likelihood   BIC:                           17214.5
                                                   No. Observations:                 6441
-    Date:                      Wed, Oct 07 2026   Df Residuals:                     6440
-    Time:                              10:45:07   Df Model:                            1
+    Date:                      Mon, Nov 16 2026   Df Residuals:                     6440
+    Time:                              12:23:50   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
@@ -1494,8 +1494,11 @@ should strip out the clustering-driven part of the fat tails. Excess kurtosis
 falls from {kurt_raw:.4f} in the raw returns to {kurt_std:.4f} in the
 standardised residuals (both computed with the pandas bias-corrected G2
 estimator, the same estimator used for the {kurt_nb02:.4f} locked in Notebook 02;
-the difference reflects the extended dataset in this notebook versus the
-shorter sample NB02 was locked on).
+the gap comes from the sample: Notebook 02 used all
+{metrics['notebook_01']['return_observations']:,} returns from
+{metrics['notebook_01']['return_series_start']}, while this notebook uses the
+{len(returns):,} from {str(returns.index[0])[:10]} that remain after Notebook 03
+drops its warm-up rows).
 {'Most of the unconditional fat-tailedness was volatility clustering in disguise; what remains is the genuinely heavy-tailed shock distribution the Student t is there to model.' if kurt_std < kurt_raw / 2 else 'The reduction is smaller than expected, suggesting the variance dynamics leave a substantial share of the tail behaviour unexplained — worth revisiting before trusting tail-sensitive outputs.'}
 
 The QQ plot makes the same point graphically. Points on the dashed line mean
@@ -1515,8 +1518,11 @@ should strip out the clustering-driven part of the fat tails. Excess kurtosis
 falls from 11.3407 in the raw returns to 2.0627 in the
 standardised residuals (both computed with the pandas bias-corrected G2
 estimator, the same estimator used for the 10.6850 locked in Notebook 02;
-the difference reflects the extended dataset in this notebook versus the
-shorter sample NB02 was locked on).
+the gap comes from the sample: Notebook 02 used all
+6,721 returns from
+2000-01-04, while this notebook uses the
+6,441 from 2001-02-13 that remain after Notebook 03
+drops its warm-up rows).
 Most of the unconditional fat-tailedness was volatility clustering in disguise; what remains is the genuinely heavy-tailed shock distribution the Student t is there to model.
 
 The QQ plot makes the same point graphically. Points on the dashed line mean
@@ -1605,8 +1611,8 @@ print(res_gjr.summary())
     Distribution:      Standardized Student's t   AIC:                           16964.5
     Method:                  Maximum Likelihood   BIC:                           17005.1
                                                   No. Observations:                 6441
-    Date:                      Wed, Oct 07 2026   Df Residuals:                     6440
-    Time:                              10:45:07   Df Model:                            1
+    Date:                      Mon, Nov 16 2026   Df Residuals:                     6440
+    Time:                              12:23:51   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
@@ -1879,8 +1885,8 @@ print(res_gjr_skewt.summary())
     Distribution:      Standardized Skew Student's t   AIC:                           16890.4
     Method:                       Maximum Likelihood   BIC:                           16937.8
                                                        No. Observations:                 6441
-    Date:                           Wed, Oct 07 2026   Df Residuals:                     6440
-    Time:                                   10:45:07   Df Model:                            1
+    Date:                           Mon, Nov 16 2026   Df Residuals:                     6440
+    Time:                                   12:23:51   Df Model:                            1
                                      Mean Model                                 
     ============================================================================
                      coef    std err          t      P>|t|      95.0% Conf. Int.
